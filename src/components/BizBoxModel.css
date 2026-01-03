@@ -1,0 +1,192 @@
+/* Full-screen fixed 3D container */
+.bizbox-model-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  z-index: 1;
+  background: linear-gradient(
+    160deg,
+    #fafafa 0%,
+    #f8f8fc 20%,
+    #f4f4fa 40%,
+    #f0f0f8 60%,
+    #eeeef6 80%,
+    #ebebf4 100%
+  );
+  overflow: hidden;
+}
+
+/* Ambient glow effects - professional depth */
+.bizbox-model-container::before {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: 10%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(167, 139, 250, 0.06) 0%,
+    rgba(167, 139, 250, 0.02) 35%,
+    transparent 65%
+  );
+  border-radius: 50%;
+  pointer-events: none;
+  animation: ambientPulse 10s ease-in-out infinite;
+  filter: blur(40px);
+}
+
+.bizbox-model-container::after {
+  content: '';
+  position: absolute;
+  bottom: 5%;
+  right: 5%;
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(59, 130, 246, 0.05) 0%,
+    rgba(59, 130, 246, 0.015) 35%,
+    transparent 65%
+  );
+  border-radius: 50%;
+  pointer-events: none;
+  animation: ambientPulse 12s ease-in-out infinite reverse;
+  animation-delay: -3s;
+  filter: blur(50px);
+}
+
+/* Third ambient layer for more depth */
+.bizbox-model-container .ambient-orb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(139, 92, 246, 0.03) 0%,
+    transparent 50%
+  );
+  border-radius: 50%;
+  pointer-events: none;
+  animation: ambientFloat 15s ease-in-out infinite;
+  filter: blur(60px);
+}
+
+@keyframes ambientPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes ambientFloat {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  33% {
+    transform: translate(-45%, -55%) scale(1.05);
+  }
+  66% {
+    transform: translate(-55%, -45%) scale(0.95);
+  }
+}
+
+/* Floor reflection effect */
+.bizbox-model-container .floor-reflection {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(
+    to top,
+    rgba(167, 139, 250, 0.02) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* Canvas styling */
+.bizbox-model-container canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  cursor: default;
+}
+
+/* Vignette effect for depth */
+.bizbox-model-container .vignette {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 50%,
+    rgba(0, 0, 0, 0.03) 100%
+  );
+  pointer-events: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .bizbox-model-container::before {
+    width: 400px;
+    height: 400px;
+  }
+
+  .bizbox-model-container::after {
+    width: 350px;
+    height: 350px;
+  }
+}
+
+@media (max-width: 768px) {
+  .bizbox-model-container::before {
+    width: 280px;
+    height: 280px;
+    top: 15%;
+    left: 5%;
+    filter: blur(30px);
+  }
+
+  .bizbox-model-container::after {
+    width: 250px;
+    height: 250px;
+    bottom: 10%;
+    right: 0%;
+    filter: blur(35px);
+  }
+}
+
+@media (max-width: 480px) {
+  .bizbox-model-container::before {
+    width: 200px;
+    height: 200px;
+    filter: blur(25px);
+  }
+
+  .bizbox-model-container::after {
+    width: 180px;
+    height: 180px;
+    filter: blur(30px);
+  }
+}
+
+/* High DPI screens */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .bizbox-model-container {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}

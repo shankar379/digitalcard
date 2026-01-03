@@ -1,0 +1,142 @@
+/* Scroll Container */
+.scroll-container {
+  width: 100%;
+  position: relative;
+}
+
+/* Scroll spacer - creates scroll height for animation */
+.scroll-spacer {
+  height: 400vh; /* 4x viewport height for smooth scroll animation */
+  pointer-events: none;
+}
+
+/* Scroll Indicator */
+.scroll-indicator {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  z-index: 100;
+  transition: opacity 0.3s ease;
+  animation: fadeInUp 1s ease 0.5s both;
+  pointer-events: none;
+}
+
+.scroll-mouse {
+  width: 26px;
+  height: 42px;
+  border: 2px solid rgba(45, 45, 80, 0.4);
+  border-radius: 15px;
+  position: relative;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+}
+
+.scroll-wheel {
+  width: 4px;
+  height: 8px;
+  background: #a78bfa;
+  border-radius: 2px;
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: scrollWheel 2s ease-in-out infinite;
+}
+
+.scroll-text {
+  color: rgba(45, 45, 80, 0.6);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* Progress Container */
+.progress-container {
+  position: fixed;
+  right: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 120px;
+  background: rgba(45, 45, 80, 0.1);
+  border-radius: 3px;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.progress-bar {
+  width: 100%;
+  background: linear-gradient(180deg, #a78bfa 0%, #8b5cf6 100%);
+  border-radius: 3px;
+  transition: height 0.1s ease-out;
+  box-shadow: 0 0 10px rgba(167, 139, 250, 0.5);
+}
+
+@keyframes scrollWheel {
+  0%, 100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    opacity: 0.3;
+    transform: translateX(-50%) translateY(12px);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .scroll-spacer {
+    height: 350vh;
+  }
+
+  .scroll-indicator {
+    bottom: 30px;
+  }
+
+  .scroll-mouse {
+    width: 22px;
+    height: 36px;
+  }
+
+  .scroll-text {
+    font-size: 10px;
+  }
+
+  .progress-container {
+    right: 15px;
+    height: 80px;
+    width: 2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .scroll-spacer {
+    height: 300vh;
+  }
+
+  .scroll-indicator {
+    bottom: 20px;
+  }
+
+  .progress-container {
+    right: 10px;
+    height: 60px;
+  }
+}
