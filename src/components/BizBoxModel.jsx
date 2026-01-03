@@ -18,6 +18,9 @@ const BizBoxModel = () => {
   const rendererRef = useRef(null);
   const modelRef = useRef(null);
   const bizCardRef = useRef(null);
+  const bizCardMeshRef = useRef(null);
+  const chipMeshRef = useRef(null);
+  const originalMaterialsRef = useRef({});
   const innerBoxBoneRef = useRef(null);
   const mixerRef = useRef(null);
   const animationActionRef = useRef(null);
@@ -195,10 +198,13 @@ const BizBoxModel = () => {
 
         console.log('BizBox model loaded successfully');
 
-        // Now load the BizCard model
+        // Now load the BizCard model (only if not already loaded)
+        if (bizCardRef.current) return;
+
         loader.load(
           '/bizcard_with_nfc_chip.glb',
           (cardGltf) => {
+            if (bizCardRef.current) return; // Prevent duplicate loading
             const cardModel = cardGltf.scene;
 
             // Log card objects
@@ -207,11 +213,38 @@ const BizBoxModel = () => {
               console.log(`  ${child.name} (${child.type})`);
             });
 
-            // Enable shadows on card
+            // Enable shadows on card and store mesh references
             cardModel.traverse((child) => {
               if (child.isMesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
+
+                // Store references to bizcard and chip meshes
+                if (child.name === 'bizcard') {
+                  bizCardMeshRef.current = child;
+                  // Store original material properties
+                  if (child.material) {
+                    originalMaterialsRef.current.bizcard = {
+                      color: child.material.color ? child.material.color.clone() : new THREE.Color(0xffffff),
+                      opacity: child.material.opacity !== undefined ? child.material.opacity : 1,
+                      transparent: child.material.transparent || false
+                    };
+                    // Enable transparency for later animation
+                    child.material.transparent = true;
+                  }
+                  console.log('Found bizcard mesh');
+                }
+
+                if (child.name === 'chip') {
+                  chipMeshRef.current = child;
+                  // Store original material properties
+                  if (child.material) {
+                    originalMaterialsRef.current.chip = {
+                      color: child.material.color ? child.material.color.clone() : new THREE.Color(0xffffff)
+                    };
+                  }
+                  console.log('Found chip mesh');
+                }
 
                 if (child.material) {
                   const materials = Array.isArray(child.material) ? child.material : [child.material];
@@ -288,10 +321,11 @@ const BizBoxModel = () => {
       scrollProgressRef.current += (targetScrollRef.current - scrollProgressRef.current) * scrollSmoothing;
       const progress = scrollProgressRef.current;
 
-      // Total frames = 150
+      // Total frames = 200
       // Frames 0-100: Box animation (card follows via bone parent)
       // Frames 100-150: Card moves towards screen
-      const totalFrames = 150;
+      // Frames 150-200: Bizcard becomes glassy/transparent, chip becomes white
+      const totalFrames = 200;
       const currentFrame = progress * totalFrames;
 
       // === BOX ANIMATION (frames 0-100) ===
@@ -319,8 +353,8 @@ const BizBoxModel = () => {
           card.position.copy(cardInitialPos.current);
           card.rotation.copy(cardInitialRot.current);
         } else {
-          // Card animation progress (0 to 1 for frames 100-150)
-          const cardProgress = easeOutQuint((currentFrame - 100) / 50);
+          // Card animation progress (0 to 1 for frames 100-150, clamped at 1)
+          const cardProgress = easeOutQuint(Math.min((currentFrame - 100) / 50, 1));
 
           // === ADJUST THESE VALUES FOR FINAL CARD POSITION ===
           // Movement from initial position (lerp from 0 to target value)
@@ -347,6 +381,45 @@ const BizBoxModel = () => {
             const floatIntensity = (cardProgress - 0.8) / 0.2;
             const cardFloat = Math.sin(floatPhaseRef.current * 2) * 0.025 * floatIntensity;
             card.position.y += cardFloat;
+          }
+        }
+      }
+
+      // === GLASSY EFFECT (frames 150-200) ===
+      // Bizcard becomes glassy/transparent, chip becomes white
+      if (bizCardMeshRef.current && chipMeshRef.current) {
+        const bizCardMesh = bizCardMeshRef.current;
+        const chipMesh = chipMeshRef.current;
+
+        if (currentFrame > 150) {
+          // Progress for glassy effect (0 to 1 for frames 150-200)
+          const glassyProgress = easeOutCubic(Math.min((currentFrame - 150) / 50, 1));
+
+          // Make bizcard glassy/transparent
+          if (bizCardMesh.material) {
+            const origOpacity = originalMaterialsRef.current.bizcard?.opacity || 1;
+            bizCardMesh.material.opacity = lerp(origOpacity, 0.3, glassyProgress);
+            bizCardMesh.material.needsUpdate = true;
+          }
+
+          // Make chip yellow (visible when bizcard becomes transparent)
+          if (chipMesh.material && chipMesh.material.color) {
+            const origColor = originalMaterialsRef.current.chip?.color || new THREE.Color(0xffffff);
+            const yellowColor = new THREE.Color(0xFFD700); // Gold/Yellow color
+            chipMesh.material.color.lerpColors(origColor, yellowColor, glassyProgress);
+            chipMesh.material.needsUpdate = true;
+          }
+        } else {
+          // Reset to original values when scrolling back
+          if (bizCardMesh.material) {
+            const origOpacity = originalMaterialsRef.current.bizcard?.opacity || 1;
+            bizCardMesh.material.opacity = origOpacity;
+            bizCardMesh.material.needsUpdate = true;
+          }
+
+          if (chipMesh.material && chipMesh.material.color && originalMaterialsRef.current.chip?.color) {
+            chipMesh.material.color.copy(originalMaterialsRef.current.chip.color);
+            chipMesh.material.needsUpdate = true;
           }
         }
       }
