@@ -18,7 +18,7 @@ const BizBoxModel = () => {
   const rendererRef = useRef(null);
   const modelRef = useRef(null);
   const bizCardRef = useRef(null);
-  const innerBoxMeshRef = useRef(null);
+  const innerBoxBoneRef = useRef(null);
   const mixerRef = useRef(null);
   const animationActionRef = useRef(null);
   const animationClipRef = useRef(null);
@@ -156,11 +156,11 @@ const BizBoxModel = () => {
           console.log(`  ${child.name} (${child.type})`);
         });
 
-        // Find the innerbox mesh to sync card position with it
+        // Find the "Bone" bone to parent the card to
         model.traverse((child) => {
-          if (child.name === 'innerbox' && child.isSkinnedMesh) {
-            innerBoxMeshRef.current = child;
-            console.log('Found innerbox mesh for position sync');
+          if (child.isBone && child.name === 'Bone') {
+            innerBoxBoneRef.current = child;
+            console.log('Found Bone for card parenting');
           }
         });
 
@@ -225,13 +225,30 @@ const BizBoxModel = () => {
               }
             });
 
-            // Add card to scene (we'll sync position with innerbox in animation loop)
-            scene.add(cardModel);
-            console.log('BizCard added to scene, will sync with innerbox mesh');
+            // Scale card down by 10% (90% of original size)
+            cardModel.scale.set(1, 1, 1);
 
-            // Store card reference - initial position will be set in animation loop
-            cardInitialPos.current.set(0, 0, 0);
-            cardInitialRot.current.set(0, 0, 0);
+            // Adjust card position and rotation (modify these values as needed)
+            cardModel.position.x = -0.02;
+            cardModel.position.y = 0.9;
+            cardModel.position.z = 0;
+            cardModel.rotation.x = 0;
+            cardModel.rotation.y = 0;
+            cardModel.rotation.z = 1.55;
+
+            // Parent card to "Bone" so it follows the animation
+            if (innerBoxBoneRef.current) {
+              innerBoxBoneRef.current.add(cardModel);
+              console.log('BizCard parented to Bone');
+            } else {
+              // Fallback: add to scene
+              scene.add(cardModel);
+              console.log('Warning: Bone not found, BizCard added to scene');
+            }
+
+            // Store initial transform for later animation phase
+            cardInitialPos.current.copy(cardModel.position);
+            cardInitialRot.current.copy(cardModel.rotation);
 
             bizCardRef.current = cardModel;
             console.log('BizCard loaded and parented successfully');
@@ -291,52 +308,45 @@ const BizBoxModel = () => {
       }
 
       // === BIZCARD ANIMATION ===
-      // Sync with innerbox mesh position during frames 0-100
-      // Then animate towards screen during frames 100-150
-      if (bizCardRef.current && innerBoxMeshRef.current) {
+      // Frames 0-100: Card follows bone animation automatically (parented)
+      // Frames 100-150: Card moves towards screen
+      if (bizCardRef.current) {
         const card = bizCardRef.current;
-        const innerBox = innerBoxMeshRef.current;
-
-        // Get innerbox world position (after animation update)
-        const innerBoxWorldPos = new THREE.Vector3();
-        innerBox.getWorldPosition(innerBoxWorldPos);
-
-        // Get innerbox world quaternion for rotation
-        const innerBoxWorldQuat = new THREE.Quaternion();
-        innerBox.getWorldQuaternion(innerBoxWorldQuat);
 
         if (currentFrame <= 100) {
-          // Card follows innerbox during box animation
-          card.position.copy(innerBoxWorldPos);
-          card.quaternion.copy(innerBoxWorldQuat);
-
-          // Store position at frame 100 for the next phase
-          cardInitialPos.current.copy(innerBoxWorldPos);
-          cardInitialRot.current.setFromQuaternion(innerBoxWorldQuat);
+          // Card follows bone animation automatically via parenting
+          // Just keep at initial position/rotation relative to bone
+          card.position.copy(cardInitialPos.current);
+          card.rotation.copy(cardInitialRot.current);
         } else {
           // Card animation progress (0 to 1 for frames 100-150)
           const cardProgress = easeOutQuint((currentFrame - 100) / 50);
 
-          // Start from innerbox position, move towards camera
-          const towardsCameraDistance = lerp(0, 2.5, cardProgress);
-          const upDistance = lerp(0, 0.8, cardProgress);
+          // === ADJUST THESE VALUES FOR FINAL CARD POSITION ===
+          // Movement from initial position (lerp from 0 to target value)
+          const moveX = lerp(0, 3, cardProgress);   // towards screen
+          const moveY = lerp(0, -2, cardProgress);     // up/down
+          const moveZ = lerp(0, 0, cardProgress);     // left/right
 
-          card.position.copy(cardInitialPos.current);
-          card.position.z += towardsCameraDistance;
-          card.position.y += upDistance;
+          card.position.x = cardInitialPos.current.x + moveX;
+          card.position.y = cardInitialPos.current.y + moveY;
+          card.position.z = cardInitialPos.current.z + moveZ;
 
-          // Keep rotation from innerbox, add slight Y tilt, and rotate 90 degrees on Z axis
-          card.rotation.copy(cardInitialRot.current);
-          card.rotation.y += lerp(0, 0.15, cardProgress);
-          card.rotation.z += lerp(0, Math.PI / 2, cardProgress); // 90 degrees Z rotation
+          // === ADJUST THESE VALUES FOR FINAL CARD ROTATION ===
+          // Rotation change (lerp from 0 to target value in radians)
+          const rotateX = lerp(0, 0, cardProgress);   // tilt forward/backward
+          const rotateY = lerp(0, 0, cardProgress);   // turn left/right
+          const rotateZ = lerp(0, -1, cardProgress);   // roll
+
+          card.rotation.x = cardInitialRot.current.x + rotateX;
+          card.rotation.y = cardInitialRot.current.y + rotateY;
+          card.rotation.z = cardInitialRot.current.z + rotateZ;
 
           // Subtle floating when card is fully out
           if (cardProgress > 0.8) {
             const floatIntensity = (cardProgress - 0.8) / 0.2;
             const cardFloat = Math.sin(floatPhaseRef.current * 2) * 0.025 * floatIntensity;
-            const cardTilt = Math.sin(floatPhaseRef.current * 1.5) * 0.01 * floatIntensity;
             card.position.y += cardFloat;
-            card.rotation.z += cardTilt;
           }
         }
       }

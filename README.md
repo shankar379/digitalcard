@@ -74,6 +74,36 @@ Update the color scheme in `tailwind.config.js` or modify the CSS variables in t
 
 Replace `public/bizbox.glb` with your own GLB model. The component will automatically load and display it.
 
+### BizCard Configuration
+
+The BizCard model (`bizcard_with_nfc_chip.glb`) position and rotation values in `src/components/BizBoxModel.jsx`:
+
+```javascript
+// Scale
+cardModel.scale.set(1, 1, 1);
+
+// Position
+cardModel.position.x = -0.02;
+cardModel.position.y = 0.9;
+cardModel.position.z = 0;
+
+// Rotation
+cardModel.rotation.x = 0;
+cardModel.rotation.y = 0;
+cardModel.rotation.z = 1.55;
+```
+
+**Position values:**
+- `position.x` - left/right
+- `position.y` - up/down
+- `position.z` - forward/backward
+
+**Rotation values (in radians):**
+- `rotation.x` - tilt forward/backward
+- `rotation.y` - turn left/right
+- `rotation.z` - roll left/right
+- Common values: `Math.PI / 2` = 90°, `Math.PI` = 180°, `1.55` ≈ 89°
+
 ## Build for Production
 
 ```bash
