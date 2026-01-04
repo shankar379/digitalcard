@@ -338,257 +338,220 @@ const BizBoxModel = () => {
     }
     scene.add(lineGroup);
 
-    // === FLOATING CUBES - BLUE SIDE (LEFT) ===
-    const blueCubes = [];
-    const blueCubeMaterial = new THREE.MeshBasicMaterial({
-      color: 0x0066ff,
-      transparent: true,
-      opacity: 0.4,
-      wireframe: false
-    });
-    const blueWireMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00aaff,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.8
-    });
-
-    for (let i = 0; i < 25; i++) {
-      const size = 0.2 + Math.random() * 0.8;
-      const cubeGeometry = new THREE.BoxGeometry(size, size, size);
-      const cube = new THREE.Mesh(cubeGeometry, blueCubeMaterial.clone());
-      const wireframe = new THREE.Mesh(cubeGeometry, blueWireMaterial.clone());
-
-      cube.position.set(
-        -5 - Math.random() * 20,
-        (Math.random() - 0.5) * 15,
-        -10 - Math.random() * 30
-      );
-      wireframe.position.copy(cube.position);
-
-      cube.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-      wireframe.rotation.copy(cube.rotation);
-
-      cube.userData = {
-        rotSpeed: { x: (Math.random() - 0.5) * 0.02, y: (Math.random() - 0.5) * 0.02 },
-        floatOffset: Math.random() * Math.PI * 2
-      };
-
-      scene.add(cube);
-      scene.add(wireframe);
-      blueCubes.push({ cube, wireframe });
-    }
-
-    // === FLOATING CUBES - RED SIDE (RIGHT) ===
-    const redCubes = [];
-    const redCubeMaterial = new THREE.MeshBasicMaterial({
-      color: 0xff2222,
-      transparent: true,
-      opacity: 0.4,
-      wireframe: false
-    });
-    const redWireMaterial = new THREE.MeshBasicMaterial({
-      color: 0xff6666,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.8
-    });
-
-    for (let i = 0; i < 25; i++) {
-      const size = 0.2 + Math.random() * 0.8;
-      const cubeGeometry = new THREE.BoxGeometry(size, size, size);
-      const cube = new THREE.Mesh(cubeGeometry, redCubeMaterial.clone());
-      const wireframe = new THREE.Mesh(cubeGeometry, redWireMaterial.clone());
-
-      cube.position.set(
-        5 + Math.random() * 20,
-        (Math.random() - 0.5) * 15,
-        -10 - Math.random() * 30
-      );
-      wireframe.position.copy(cube.position);
-
-      cube.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-      wireframe.rotation.copy(cube.rotation);
-
-      cube.userData = {
-        rotSpeed: { x: (Math.random() - 0.5) * 0.02, y: (Math.random() - 0.5) * 0.02 },
-        floatOffset: Math.random() * Math.PI * 2
-      };
-
-      scene.add(cube);
-      scene.add(wireframe);
-      redCubes.push({ cube, wireframe });
-    }
-
-    // === GLOWING TUBES/CYLINDERS - BLUE SIDE ===
-    const blueTubes = [];
-    for (let i = 0; i < 15; i++) {
-      const tubeRadius = 0.02 + Math.random() * 0.05;
-      const tubeLength = 2 + Math.random() * 8;
-      const tubeGeometry = new THREE.CylinderGeometry(tubeRadius, tubeRadius, tubeLength, 8);
-      const tubeMaterial = new THREE.MeshBasicMaterial({
-        color: 0x00aaff,
+    // === NFC SIGNAL WAVES (Expanding rings from center) ===
+    const nfcWaves = [];
+    for (let i = 0; i < 5; i++) {
+      const waveGeometry = new THREE.RingGeometry(0.5 + i * 2, 0.6 + i * 2, 64);
+      const waveMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00ffff,
         transparent: true,
-        opacity: 0.7
+        opacity: 0.3 - i * 0.05,
+        side: THREE.DoubleSide
       });
-      const tube = new THREE.Mesh(tubeGeometry, tubeMaterial);
-
-      tube.position.set(
-        -3 - Math.random() * 25,
-        (Math.random() - 0.5) * 12,
-        -8 - Math.random() * 25
-      );
-      tube.rotation.set(
-        Math.random() * Math.PI,
-        Math.random() * Math.PI,
-        Math.random() * Math.PI
-      );
-
-      scene.add(tube);
-      blueTubes.push(tube);
+      const wave = new THREE.Mesh(waveGeometry, waveMaterial);
+      wave.position.set(0, 0, -15);
+      wave.userData = { baseScale: 1 + i * 0.5, phaseOffset: i * 0.5 };
+      scene.add(wave);
+      nfcWaves.push(wave);
     }
 
-    // === GLOWING TUBES/CYLINDERS - RED SIDE ===
-    const redTubes = [];
-    for (let i = 0; i < 15; i++) {
-      const tubeRadius = 0.02 + Math.random() * 0.05;
-      const tubeLength = 2 + Math.random() * 8;
-      const tubeGeometry = new THREE.CylinderGeometry(tubeRadius, tubeRadius, tubeLength, 8);
-      const tubeMaterial = new THREE.MeshBasicMaterial({
-        color: 0xff4444,
+    // === CONNECTION NODES (representing people/devices to connect with) ===
+    const connectionNodes = [];
+    const nodePositions = [
+      // Blue side nodes (left)
+      { x: -8, y: 3, z: -12, color: 0x00aaff },
+      { x: -12, y: -2, z: -18, color: 0x00aaff },
+      { x: -6, y: 5, z: -22, color: 0x00aaff },
+      { x: -15, y: 1, z: -15, color: 0x00aaff },
+      { x: -10, y: -4, z: -25, color: 0x00aaff },
+      { x: -18, y: 4, z: -20, color: 0x00aaff },
+      // Red side nodes (right)
+      { x: 8, y: 2, z: -14, color: 0xff4444 },
+      { x: 12, y: -3, z: -20, color: 0xff4444 },
+      { x: 6, y: 4, z: -18, color: 0xff4444 },
+      { x: 15, y: 0, z: -16, color: 0xff4444 },
+      { x: 10, y: -5, z: -24, color: 0xff4444 },
+      { x: 18, y: 3, z: -22, color: 0xff4444 },
+    ];
+
+    nodePositions.forEach((pos, index) => {
+      // Node sphere (person/device)
+      const nodeGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+      const nodeMaterial = new THREE.MeshBasicMaterial({
+        color: pos.color,
         transparent: true,
-        opacity: 0.7
+        opacity: 0.9
       });
-      const tube = new THREE.Mesh(tubeGeometry, tubeMaterial);
+      const node = new THREE.Mesh(nodeGeometry, nodeMaterial);
+      node.position.set(pos.x, pos.y, pos.z);
 
-      tube.position.set(
-        3 + Math.random() * 25,
-        (Math.random() - 0.5) * 12,
-        -8 - Math.random() * 25
+      // Outer glow ring
+      const glowGeometry = new THREE.RingGeometry(0.2, 0.35, 32);
+      const glowMaterial = new THREE.MeshBasicMaterial({
+        color: pos.color,
+        transparent: true,
+        opacity: 0.4,
+        side: THREE.DoubleSide
+      });
+      const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+      glow.position.copy(node.position);
+
+      node.userData = { pulseOffset: index * 0.5, glow };
+      scene.add(node);
+      scene.add(glow);
+      connectionNodes.push(node);
+    });
+
+    // === CONNECTION LINES (data flow between center and nodes) ===
+    const connectionLines = [];
+    const centerPoint = new THREE.Vector3(0, 0, -15);
+
+    nodePositions.forEach((pos, index) => {
+      const nodePoint = new THREE.Vector3(pos.x, pos.y, pos.z);
+
+      // Create curved line using QuadraticBezierCurve3
+      const midPoint = new THREE.Vector3(
+        (centerPoint.x + nodePoint.x) / 2,
+        (centerPoint.y + nodePoint.y) / 2 + 1,
+        (centerPoint.z + nodePoint.z) / 2
       );
-      tube.rotation.set(
-        Math.random() * Math.PI,
-        Math.random() * Math.PI,
-        Math.random() * Math.PI
-      );
 
-      scene.add(tube);
-      redTubes.push(tube);
-    }
+      const curve = new THREE.QuadraticBezierCurve3(centerPoint, midPoint, nodePoint);
+      const points = curve.getPoints(30);
+      const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+      const lineMaterial = new THREE.LineBasicMaterial({
+        color: pos.color,
+        transparent: true,
+        opacity: 0.3
+      });
+      const line = new THREE.Line(lineGeometry, lineMaterial);
+      scene.add(line);
+      connectionLines.push({ line, curve, color: pos.color });
+    });
 
-    // === GRID FLOOR ===
+    // === DATA PULSE PARTICLES (flowing along connection lines) ===
+    const dataPulses = [];
+    connectionLines.forEach((conn, index) => {
+      for (let i = 0; i < 3; i++) {
+        const pulseGeometry = new THREE.SphereGeometry(0.06, 8, 8);
+        const pulseMaterial = new THREE.MeshBasicMaterial({
+          color: conn.color,
+          transparent: true,
+          opacity: 0.8
+        });
+        const pulse = new THREE.Mesh(pulseGeometry, pulseMaterial);
+        pulse.userData = {
+          curve: conn.curve,
+          progress: i * 0.33, // Stagger pulses along the line
+          speed: 0.3 + Math.random() * 0.2
+        };
+        scene.add(pulse);
+        dataPulses.push(pulse);
+      }
+    });
+
+    // === CIRCUIT GRID FLOOR ===
     const gridSize = 100;
-    const gridDivisions = 50;
-    const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x222244, 0x111133);
+    const gridDivisions = 40;
+    const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x004466, 0x002233);
     gridHelper.position.set(0, baseY - 0.5, -20);
     gridHelper.material.transparent = true;
-    gridHelper.material.opacity = 0.3;
+    gridHelper.material.opacity = 0.4;
     scene.add(gridHelper);
 
-    // === STAR PARTICLES ===
-    const starCount = 2000;
-    const starGeometry = new THREE.BufferGeometry();
-    const starPositions = new Float32Array(starCount * 3);
-    const starColors = new Float32Array(starCount * 3);
+    // === FLOATING DATA PARTICLES (representing digital information) ===
+    const dataParticleCount = 1500;
+    const dataGeometry = new THREE.BufferGeometry();
+    const dataPositions = new Float32Array(dataParticleCount * 3);
+    const dataColors = new Float32Array(dataParticleCount * 3);
 
-    for (let i = 0; i < starCount; i++) {
-      const x = (Math.random() - 0.5) * 100;
-      const y = (Math.random() - 0.5) * 50;
-      const z = -10 - Math.random() * 50;
+    for (let i = 0; i < dataParticleCount; i++) {
+      const x = (Math.random() - 0.5) * 60;
+      const y = (Math.random() - 0.5) * 30;
+      const z = -10 - Math.random() * 40;
 
-      starPositions[i * 3] = x;
-      starPositions[i * 3 + 1] = y;
-      starPositions[i * 3 + 2] = z;
+      dataPositions[i * 3] = x;
+      dataPositions[i * 3 + 1] = y;
+      dataPositions[i * 3 + 2] = z;
 
-      // Color based on side (blue left, red right)
-      if (x < 0) {
-        starColors[i * 3] = 0.2 + Math.random() * 0.3;     // R
-        starColors[i * 3 + 1] = 0.5 + Math.random() * 0.5; // G
-        starColors[i * 3 + 2] = 1;                          // B
+      // Color: cyan in center, blue on left, red on right
+      const distFromCenter = Math.abs(x);
+      if (distFromCenter < 5) {
+        // Center - cyan/white
+        dataColors[i * 3] = 0.5 + Math.random() * 0.5;
+        dataColors[i * 3 + 1] = 1;
+        dataColors[i * 3 + 2] = 1;
+      } else if (x < 0) {
+        // Left - blue
+        dataColors[i * 3] = 0.1;
+        dataColors[i * 3 + 1] = 0.5 + Math.random() * 0.5;
+        dataColors[i * 3 + 2] = 1;
       } else {
-        starColors[i * 3] = 1;                              // R
-        starColors[i * 3 + 1] = 0.2 + Math.random() * 0.3; // G
-        starColors[i * 3 + 2] = 0.2 + Math.random() * 0.3; // B
+        // Right - red/orange
+        dataColors[i * 3] = 1;
+        dataColors[i * 3 + 1] = 0.2 + Math.random() * 0.3;
+        dataColors[i * 3 + 2] = 0.1;
       }
     }
 
-    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-    starGeometry.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+    dataGeometry.setAttribute('position', new THREE.BufferAttribute(dataPositions, 3));
+    dataGeometry.setAttribute('color', new THREE.BufferAttribute(dataColors, 3));
 
-    const starMaterial = new THREE.PointsMaterial({
-      size: 0.1,
+    const dataMaterial = new THREE.PointsMaterial({
+      size: 0.08,
       vertexColors: true,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.6,
       sizeAttenuation: true
     });
 
-    const stars = new THREE.Points(starGeometry, starMaterial);
-    scene.add(stars);
+    const dataParticles = new THREE.Points(dataGeometry, dataMaterial);
+    scene.add(dataParticles);
 
-    // === WIREFRAME PANELS - BLUE SIDE ===
-    for (let i = 0; i < 8; i++) {
-      const panelWidth = 1 + Math.random() * 3;
-      const panelHeight = 1 + Math.random() * 3;
-      const panelGeometry = new THREE.PlaneGeometry(panelWidth, panelHeight, 4, 4);
-      const panelMaterial = new THREE.MeshBasicMaterial({
-        color: 0x0066ff,
+    // === HEXAGON NETWORK PATTERN (background) ===
+    const hexGroup = new THREE.Group();
+    for (let i = 0; i < 30; i++) {
+      const hexRadius = 0.5 + Math.random() * 1.5;
+      const hexShape = new THREE.Shape();
+      for (let j = 0; j < 6; j++) {
+        const angle = (j / 6) * Math.PI * 2;
+        const hx = Math.cos(angle) * hexRadius;
+        const hy = Math.sin(angle) * hexRadius;
+        if (j === 0) hexShape.moveTo(hx, hy);
+        else hexShape.lineTo(hx, hy);
+      }
+      hexShape.closePath();
+
+      const hexGeometry = new THREE.ShapeGeometry(hexShape);
+      const isLeft = Math.random() > 0.5;
+      const hexMaterial = new THREE.MeshBasicMaterial({
+        color: isLeft ? 0x0066ff : 0xff3333,
         wireframe: true,
         transparent: true,
-        opacity: 0.3,
+        opacity: 0.15,
         side: THREE.DoubleSide
       });
-      const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+      const hex = new THREE.Mesh(hexGeometry, hexMaterial);
 
-      panel.position.set(
-        -8 - Math.random() * 15,
-        (Math.random() - 0.5) * 10,
-        -5 - Math.random() * 20
+      hex.position.set(
+        (Math.random() - 0.5) * 50,
+        (Math.random() - 0.5) * 25,
+        -15 - Math.random() * 30
       );
-      panel.rotation.set(
-        (Math.random() - 0.5) * 0.5,
-        Math.random() * Math.PI * 0.3,
-        (Math.random() - 0.5) * 0.3
-      );
+      hex.rotation.z = Math.random() * Math.PI;
 
-      scene.add(panel);
+      hexGroup.add(hex);
     }
-
-    // === WIREFRAME PANELS - RED SIDE ===
-    for (let i = 0; i < 8; i++) {
-      const panelWidth = 1 + Math.random() * 3;
-      const panelHeight = 1 + Math.random() * 3;
-      const panelGeometry = new THREE.PlaneGeometry(panelWidth, panelHeight, 4, 4);
-      const panelMaterial = new THREE.MeshBasicMaterial({
-        color: 0xff3333,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.3,
-        side: THREE.DoubleSide
-      });
-      const panel = new THREE.Mesh(panelGeometry, panelMaterial);
-
-      panel.position.set(
-        8 + Math.random() * 15,
-        (Math.random() - 0.5) * 10,
-        -5 - Math.random() * 20
-      );
-      panel.rotation.set(
-        (Math.random() - 0.5) * 0.5,
-        -Math.random() * Math.PI * 0.3,
-        (Math.random() - 0.5) * 0.3
-      );
-
-      scene.add(panel);
-    }
+    scene.add(hexGroup);
 
     // Store references for animation
     const scifiElements = {
-      blueCubes,
-      redCubes,
+      nfcWaves,
+      connectionNodes,
+      dataPulses,
+      dataParticles,
       centralGlow,
-      halo,
-      stars
+      halo
     };
 
     const loader = new GLTFLoader();
@@ -1704,30 +1667,71 @@ const BizBoxModel = () => {
         }
       });
 
-      // === ANIMATE SCI-FI CUBES ===
-      // Animate blue cubes
-      scifiElements.blueCubes.forEach(({ cube, wireframe }) => {
-        cube.rotation.x += cube.userData.rotSpeed.x;
-        cube.rotation.y += cube.userData.rotSpeed.y;
-        wireframe.rotation.copy(cube.rotation);
+      // === ANIMATE CONNECTION ELEMENTS ===
 
-        // Subtle floating
-        const float = Math.sin(floatPhaseRef.current + cube.userData.floatOffset) * 0.02;
-        cube.position.y += float * delta;
-        wireframe.position.copy(cube.position);
+      // Animate NFC waves (pulsing/scaling effect)
+      scifiElements.nfcWaves.forEach((wave, index) => {
+        const pulsePhase = floatPhaseRef.current * 0.5 + wave.userData.phaseOffset;
+        const scale = wave.userData.baseScale + Math.sin(pulsePhase) * 0.3;
+        wave.scale.set(scale, scale, 1);
+
+        // Fade in and out based on scale
+        const opacity = 0.3 - index * 0.05 + Math.sin(pulsePhase) * 0.1;
+        wave.material.opacity = Math.max(0.05, Math.min(0.4, opacity));
       });
 
-      // Animate red cubes
-      scifiElements.redCubes.forEach(({ cube, wireframe }) => {
-        cube.rotation.x += cube.userData.rotSpeed.x;
-        cube.rotation.y += cube.userData.rotSpeed.y;
-        wireframe.rotation.copy(cube.rotation);
+      // Animate data pulses (flowing along connection curves)
+      scifiElements.dataPulses.forEach((pulse) => {
+        // Move pulse along its curve
+        pulse.userData.progress += pulse.userData.speed * delta;
 
-        // Subtle floating
-        const float = Math.sin(floatPhaseRef.current + cube.userData.floatOffset) * 0.02;
-        cube.position.y += float * delta;
-        wireframe.position.copy(cube.position);
+        // Loop back to start when reaching end
+        if (pulse.userData.progress > 1) {
+          pulse.userData.progress -= 1;
+        }
+
+        // Get position on curve
+        const point = pulse.userData.curve.getPoint(pulse.userData.progress);
+        pulse.position.copy(point);
+
+        // Pulsing glow effect
+        const glowIntensity = 0.5 + Math.sin(floatPhaseRef.current * 3 + pulse.userData.progress * Math.PI * 2) * 0.3;
+        pulse.material.opacity = glowIntensity;
       });
+
+      // Animate connection nodes (pulsing glow)
+      scifiElements.connectionNodes.forEach((node) => {
+        const pulsePhase = floatPhaseRef.current * 2 + node.userData.pulseOffset;
+        const glowScale = 1 + Math.sin(pulsePhase) * 0.3;
+
+        // Pulse the outer glow ring
+        if (node.userData.glow) {
+          node.userData.glow.scale.set(glowScale, glowScale, 1);
+          node.userData.glow.material.opacity = 0.3 + Math.sin(pulsePhase) * 0.2;
+        }
+
+        // Subtle floating movement
+        const floatY = Math.sin(floatPhaseRef.current + node.userData.pulseOffset) * 0.05;
+        node.position.y += floatY * delta;
+        if (node.userData.glow) {
+          node.userData.glow.position.y = node.position.y;
+        }
+      });
+
+      // Animate floating data particles (subtle movement)
+      if (scifiElements.dataParticles) {
+        const positions = scifiElements.dataParticles.geometry.attributes.position.array;
+        for (let i = 0; i < positions.length; i += 3) {
+          // Subtle upward drift
+          positions[i + 1] += delta * 0.1;
+
+          // Reset particles that go too high
+          if (positions[i + 1] > 15) {
+            positions[i + 1] = -15;
+          }
+        }
+        scifiElements.dataParticles.geometry.attributes.position.needsUpdate = true;
+      }
 
       // Pulse central glow
       const glowPulse = 0.7 + Math.sin(floatPhaseRef.current * 2) * 0.3;
