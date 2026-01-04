@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import './BizBoxModel.css';
@@ -28,6 +28,13 @@ const BizBoxModel = () => {
   const animationFrameRef = useRef(null);
   const clockRef = useRef(new THREE.Clock());
 
+  // Loading state
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [showPreloader, setShowPreloader] = useState(true);
+  const loadingProgressRef = useRef({ bizbox: 0, bizcard: 0 });
+  const showPreloaderRef = useRef(true); // Ref for animation loop
+
   // Scroll tracking
   const scrollProgressRef = useRef(0);
   const targetScrollRef = useRef(0);
@@ -47,10 +54,10 @@ const BizBoxModel = () => {
   // Intro camera animation refs
   const introProgressRef = useRef(0);
   const introCompleteRef = useRef(false);
-  const introDuration = 2.5; // Duration in seconds
+  const introDuration = 4; // Duration in seconds (slower)
 
   // Camera positions for intro animation
-  const cameraStartPos = { x: 0, y: 8, z: 1 };   // Start from top
+  const cameraStartPos = { x: 0, y: 12, z: 1 };  // Start from higher top
   const cameraEndPos = { x: 0, y: 1, z: 5.5 };   // Final position
 
   const handleScroll = useCallback(() => {
@@ -1127,10 +1134,22 @@ const BizBoxModel = () => {
             console.log('NFC chip text label and pointer line added to scene');
 
             console.log('BizCard loaded and parented successfully');
+
+            // Mark loading complete and hide preloader after a short delay
+            setLoadingProgress(100);
+            setIsLoaded(true);
+            setTimeout(() => {
+              setShowPreloader(false);
+              showPreloaderRef.current = false; // Update ref for animation loop
+            }, 500); // Small delay after 100% before hiding
           },
           (progress) => {
             if (progress.total > 0) {
               const percent = (progress.loaded / progress.total) * 100;
+              loadingProgressRef.current.bizcard = percent;
+              // BizCard is 50% of total loading
+              const totalProgress = (loadingProgressRef.current.bizbox * 0.5) + (loadingProgressRef.current.bizcard * 0.5);
+              setLoadingProgress(Math.round(totalProgress));
               console.log('BizCard loading:', percent.toFixed(2) + '%');
             }
           },
@@ -1142,6 +1161,10 @@ const BizBoxModel = () => {
       (progress) => {
         if (progress.total > 0) {
           const percent = (progress.loaded / progress.total) * 100;
+          loadingProgressRef.current.bizbox = percent;
+          // BizBox is 50% of total loading
+          const totalProgress = (loadingProgressRef.current.bizbox * 0.5) + (loadingProgressRef.current.bizcard * 0.5);
+          setLoadingProgress(Math.round(totalProgress));
           console.log('BizBox loading:', percent.toFixed(2) + '%');
         }
       },
@@ -1159,8 +1182,8 @@ const BizBoxModel = () => {
       floatPhaseRef.current += delta;
 
       // === INTRO CAMERA ANIMATION ===
-      // Animate camera from top to final position when page loads
-      if (!introCompleteRef.current) {
+      // Animate camera from top to final position after loading completes
+      if (!introCompleteRef.current && !showPreloaderRef.current) {
         introProgressRef.current += delta / introDuration;
 
         if (introProgressRef.current >= 1) {
@@ -1732,27 +1755,102 @@ const BizBoxModel = () => {
   }, [handleScroll]);
 
   return (
-    <div ref={containerRef} className="bizbox-model-container">
-      <div
-        ref={scrollIndicatorRef}
-        style={{
-          position: 'fixed',
-          bottom: '30px',
-          right: '30px',
-          color: 'white',
-          fontSize: '14px',
-          fontFamily: 'monospace',
-          fontWeight: 'bold',
-          padding: '8px 16px',
-          background: 'rgba(0, 0, 0, 0.5)',
-          borderRadius: '4px',
-          zIndex: 1000,
-          letterSpacing: '1px'
-        }}
-      >
-        0 / 250
+    <>
+      {/* Preloader */}
+      {showPreloader && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: '#0a0a0a',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9999,
+            transition: 'opacity 0.5s ease-out',
+            opacity: isLoaded ? 0 : 1,
+            pointerEvents: isLoaded ? 'none' : 'auto'
+          }}
+        >
+          {/* Loading percentage */}
+          <div
+            style={{
+              fontSize: '72px',
+              fontWeight: 'bold',
+              fontFamily: 'monospace',
+              color: '#ffffff',
+              marginBottom: '30px',
+              letterSpacing: '4px'
+            }}
+          >
+            {loadingProgress}%
+          </div>
+
+          {/* Progress bar container */}
+          <div
+            style={{
+              width: '300px',
+              height: '4px',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '2px',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Progress bar fill */}
+            <div
+              style={{
+                width: `${loadingProgress}%`,
+                height: '100%',
+                backgroundColor: '#8b5cf6',
+                borderRadius: '2px',
+                transition: 'width 0.3s ease-out'
+              }}
+            />
+          </div>
+
+          {/* Loading text */}
+          <div
+            style={{
+              marginTop: '20px',
+              fontSize: '14px',
+              fontFamily: 'monospace',
+              color: 'rgba(255, 255, 255, 0.5)',
+              letterSpacing: '2px',
+              textTransform: 'uppercase'
+            }}
+          >
+            Loading assets...
+          </div>
+        </div>
+      )}
+
+      {/* Main content */}
+      <div ref={containerRef} className="bizbox-model-container">
+        <div
+          ref={scrollIndicatorRef}
+          style={{
+            position: 'fixed',
+            bottom: '30px',
+            right: '30px',
+            color: 'white',
+            fontSize: '14px',
+            fontFamily: 'monospace',
+            fontWeight: 'bold',
+            padding: '8px 16px',
+            background: 'rgba(0, 0, 0, 0.5)',
+            borderRadius: '4px',
+            zIndex: 1000,
+            letterSpacing: '1px'
+          }}
+        >
+          0 / 250
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
