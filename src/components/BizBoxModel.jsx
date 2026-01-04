@@ -749,33 +749,42 @@ const BizBoxModel = () => {
             sprite: redTextLabel,
             text: 'OUTER_BOX\nBONE_003',
             startFrame: 0,
-            typeEndFrame: 15,      // Typing ends at frame 15
-            deleteStartFrame: 20,  // Delete starts at frame 20
-            endFrame: 30,          // Fully gone by frame 30
+            typeEndFrame: 5,       // Typing animation over 5 frames
+            deleteStartFrame: 25,  // Delete animation over 5 frames
+            endFrame: 30,
             visible: false
           },
           blue: {
             sprite: null, // Will be set below
             text: 'OUTER_BOX\nBONE_002',
             startFrame: 70,
-            typeEndFrame: 85,
-            deleteStartFrame: 90,
+            typeEndFrame: 75,      // Typing animation over 5 frames
+            deleteStartFrame: 95,  // Delete animation over 5 frames
             endFrame: 100,
-            // Alt text (scan qr code)
-            altText: 'SCAN THIS\nQR CODE',
-            altStartFrame: 150,
-            altTypeEndFrame: 175,
-            altDeleteStartFrame: 185,
-            altEndFrame: 200,
             visible: false
           },
           green: {
             sprite: null, // Will be set below
             text: 'BIZCARD\nNFC_CHIP',
             startFrame: 110,
-            typeEndFrame: 130,
-            deleteStartFrame: 140,
+            typeEndFrame: 115,     // Typing animation over 5 frames
+            deleteStartFrame: 145, // Delete animation over 5 frames
             endFrame: 150,
+            // Alt text (scan qr code) - appears at same position after green text
+            altText: 'SCAN THIS\nQR CODE',
+            altStartFrame: 150,
+            altTypeEndFrame: 155,  // Typing animation over 5 frames
+            altDeleteStartFrame: 195, // Delete animation over 5 frames
+            altEndFrame: 200,
+            visible: false
+          },
+          nfcChip: {
+            sprite: null, // Will be set in bizcard loader
+            text: 'THIS NFC\nCHIP',
+            startFrame: 200,
+            typeEndFrame: 205,     // Typing animation over 5 frames
+            deleteStartFrame: 245, // Delete animation over 5 frames
+            endFrame: 250,
             visible: false
           }
         };
@@ -1045,6 +1054,62 @@ const BizBoxModel = () => {
 
             console.log('BizCard text label and pointer line added to scene');
 
+            // === ADD TEXT LABEL WITH BENT LINE POINTING TO NFC CHIP (frames 200-250) ===
+            // Create text label for NFC chip using same approach as green text
+            const nfcTextLabel = createGreenTextSprite(48);
+            sceneRef.current.add(nfcTextLabel);
+            nfcTextLabel.visible = false;
+            nfcTextLabel.scale.set(2.5, 0.7, 1);
+
+            // Draw initial text on the sprite to ensure it works
+            if (nfcTextLabel.userData && nfcTextLabel.userData.context) {
+              const ctx = nfcTextLabel.userData.context;
+              ctx.clearRect(0, 0, 512, 128);
+              ctx.font = 'bold 48px Arial';
+              ctx.fillStyle = 'white';
+              ctx.textAlign = 'left';
+              ctx.textBaseline = 'middle';
+              ctx.fillText('THIS NFC', 10, 40);
+              ctx.fillText('CHIP', 10, 93);
+              nfcTextLabel.userData.texture.needsUpdate = true;
+              console.log('NFC text drawn on canvas');
+            }
+
+            // Set reference in animation data AND also store globally
+            window.nfcTextLabelRef = nfcTextLabel;
+            if (window.textAnimationData && window.textAnimationData.nfcChip) {
+              window.textAnimationData.nfcChip.sprite = nfcTextLabel;
+              console.log('NFC chip sprite assigned:', nfcTextLabel);
+            } else {
+              console.warn('textAnimationData.nfcChip not found!');
+            }
+
+            // Create bent line for NFC chip - pointing from RIGHT side (same as green text)
+            const nfcLineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+            const nfcLinePoints = [
+              new THREE.Vector3(0, 0, 0),
+              new THREE.Vector3(0.6, 0.4, 0),
+              new THREE.Vector3(1.6, 0.4, 0)
+            ];
+            const nfcLineGeometry = new THREE.BufferGeometry().setFromPoints(nfcLinePoints);
+            const nfcPointerLine = new THREE.Line(nfcLineGeometry, nfcLineMaterial);
+            sceneRef.current.add(nfcPointerLine);
+            nfcPointerLine.visible = false;
+
+            // Small dot at start of line
+            const nfcDotGeometry = new THREE.SphereGeometry(0.05, 16, 16);
+            const nfcDotMaterial = new THREE.MeshBasicMaterial({ color: 0xFFD700 }); // Yellow dot to match chip
+            const nfcLineDot = new THREE.Mesh(nfcDotGeometry, nfcDotMaterial);
+            sceneRef.current.add(nfcLineDot);
+            nfcLineDot.visible = false;
+
+            // Store references
+            window.nfcTextLabelRef = nfcTextLabel;
+            window.nfcPointerLineRef = nfcPointerLine;
+            window.nfcLineDotRef = nfcLineDot;
+
+            console.log('NFC chip text label and pointer line added to scene');
+
             console.log('BizCard loaded and parented successfully');
           },
           (progress) => {
@@ -1154,6 +1219,7 @@ const BizBoxModel = () => {
       }
 
       // === UPDATE TEXT LABEL AND POINTER LINE TO FOLLOW BLUE SPHERE (BONE002) ===
+      // Text on LEFT side of blue sphere
       if (window.blueSphereRef && window.blueTextLabelRef && window.bluePointerLineRef) {
         // Get blue sphere world position
         const blueSphereWorldPos = new THREE.Vector3();
@@ -1162,16 +1228,16 @@ const BizBoxModel = () => {
         // Position line start at sphere
         const blueLineStart = blueSphereWorldPos.clone();
 
-        // Bend point - offset up and to the right
+        // Bend point - offset up and to the LEFT
         const blueBendPoint = new THREE.Vector3(
-          blueSphereWorldPos.x + 0.6,
+          blueSphereWorldPos.x - 0.6,
           blueSphereWorldPos.y + 0.4,
           blueSphereWorldPos.z
         );
 
-        // End point - horizontal from bend point
+        // End point - horizontal from bend point (going left)
         const blueLineEnd = new THREE.Vector3(
-          blueBendPoint.x + 1.0,
+          blueBendPoint.x - 1.0,
           blueBendPoint.y,
           blueBendPoint.z
         );
@@ -1194,8 +1260,8 @@ const BizBoxModel = () => {
           window.blueLineDotRef.position.copy(blueLineStart);
         }
 
-        // Update text position (at line end)
-        window.blueTextLabelRef.position.set(blueLineEnd.x + 0.8, blueLineEnd.y, blueLineEnd.z);
+        // Update text position (at line end, offset to the left)
+        window.blueTextLabelRef.position.set(blueLineEnd.x - 0.8, blueLineEnd.y, blueLineEnd.z);
       }
 
       // === UPDATE TEXT LABEL AND POINTER LINE TO FOLLOW GREEN SPHERE (BIZCARD) ===
@@ -1243,6 +1309,52 @@ const BizBoxModel = () => {
         window.cardTextLabelRef.position.set(cardLineEnd.x + 0.8, cardLineEnd.y, cardLineEnd.z);
       }
 
+      // === UPDATE TEXT LABEL AND POINTER LINE TO FOLLOW NFC CHIP ===
+      // Use same positioning as green sphere text (RIGHT side) since that works
+      if (chipMeshRef.current && window.nfcTextLabelRef && window.nfcPointerLineRef) {
+        // Get chip mesh world position
+        const chipWorldPos = new THREE.Vector3();
+        chipMeshRef.current.getWorldPosition(chipWorldPos);
+
+        // Position line start at chip
+        const nfcLineStart = chipWorldPos.clone();
+
+        // Bend point - offset up and to the RIGHT (same as green text that works)
+        const nfcBendPoint = new THREE.Vector3(
+          chipWorldPos.x + 0.6,
+          chipWorldPos.y + 0.4,
+          chipWorldPos.z
+        );
+
+        // End point - horizontal from bend point (going right)
+        const nfcLineEnd = new THREE.Vector3(
+          nfcBendPoint.x + 1.0,
+          nfcBendPoint.y,
+          nfcBendPoint.z
+        );
+
+        // Update line geometry
+        const nfcPositions = window.nfcPointerLineRef.geometry.attributes.position.array;
+        nfcPositions[0] = nfcLineStart.x;
+        nfcPositions[1] = nfcLineStart.y;
+        nfcPositions[2] = nfcLineStart.z;
+        nfcPositions[3] = nfcBendPoint.x;
+        nfcPositions[4] = nfcBendPoint.y;
+        nfcPositions[5] = nfcBendPoint.z;
+        nfcPositions[6] = nfcLineEnd.x;
+        nfcPositions[7] = nfcLineEnd.y;
+        nfcPositions[8] = nfcLineEnd.z;
+        window.nfcPointerLineRef.geometry.attributes.position.needsUpdate = true;
+
+        // Update dot position (at line start, on chip)
+        if (window.nfcLineDotRef) {
+          window.nfcLineDotRef.position.copy(nfcLineStart);
+        }
+
+        // Update text position (at line end, offset to the right)
+        window.nfcTextLabelRef.position.set(nfcLineEnd.x + 0.8, nfcLineEnd.y, nfcLineEnd.z);
+      }
+
       // === TEXT ANIMATION SEQUENCE ===
       // Controls visibility and typing animation based on current frame
       if (window.textAnimationData && window.updateTextSprite) {
@@ -1276,17 +1388,15 @@ const BizBoxModel = () => {
           if (window.lineDotRef) window.lineDotRef.visible = redVisible;
         }
 
-        // === BLUE TEXT (frames 70-100, then 150-200 with alt text) ===
+        // === BLUE TEXT (frames 70-100) ===
         const blueData = animData.blue;
         if (blueData.sprite) {
           let blueVisible = false;
           let blueProgress = 0;
-          let blueText = blueData.text;
 
-          // First appearance (frames 70-100)
+          // Appearance (frames 70-100)
           if (currentFrame >= blueData.startFrame && currentFrame < blueData.endFrame) {
             blueVisible = true;
-            blueText = blueData.text;
 
             if (currentFrame <= blueData.typeEndFrame) {
               // Typing in
@@ -1298,26 +1408,8 @@ const BizBoxModel = () => {
               // Deleting
               blueProgress = 1 - (currentFrame - blueData.deleteStartFrame) / (blueData.endFrame - blueData.deleteStartFrame);
             }
-          }
-          // Second appearance with alt text (frames 150-200)
-          else if (currentFrame >= blueData.altStartFrame && currentFrame < blueData.altEndFrame) {
-            blueVisible = true;
-            blueText = blueData.altText;
 
-            if (currentFrame <= blueData.altTypeEndFrame) {
-              // Typing in
-              blueProgress = (currentFrame - blueData.altStartFrame) / (blueData.altTypeEndFrame - blueData.altStartFrame);
-            } else if (currentFrame < blueData.altDeleteStartFrame) {
-              // Hold fully typed
-              blueProgress = 1;
-            } else {
-              // Deleting
-              blueProgress = 1 - (currentFrame - blueData.altDeleteStartFrame) / (blueData.altEndFrame - blueData.altDeleteStartFrame);
-            }
-          }
-
-          if (blueVisible) {
-            window.updateTextSprite(blueData.sprite, blueText, Math.max(0, Math.min(1, blueProgress)));
+            window.updateTextSprite(blueData.sprite, blueData.text, Math.max(0, Math.min(1, blueProgress)));
           }
 
           blueData.sprite.visible = blueVisible;
@@ -1325,14 +1417,17 @@ const BizBoxModel = () => {
           if (window.blueLineDotRef) window.blueLineDotRef.visible = blueVisible;
         }
 
-        // === GREEN TEXT (frames 110-150) ===
+        // === GREEN TEXT (frames 110-150, then 150-200 with alt text "SCAN THIS QR CODE") ===
         const greenData = animData.green;
         if (greenData.sprite) {
           let greenVisible = false;
           let greenProgress = 0;
+          let greenText = greenData.text;
 
+          // First appearance (frames 110-150)
           if (currentFrame >= greenData.startFrame && currentFrame < greenData.endFrame) {
             greenVisible = true;
+            greenText = greenData.text;
 
             if (currentFrame <= greenData.typeEndFrame) {
               // Typing in
@@ -1344,13 +1439,63 @@ const BizBoxModel = () => {
               // Deleting
               greenProgress = 1 - (currentFrame - greenData.deleteStartFrame) / (greenData.endFrame - greenData.deleteStartFrame);
             }
+          }
+          // Second appearance with alt text (frames 150-200) - "SCAN THIS QR CODE"
+          else if (currentFrame >= greenData.altStartFrame && currentFrame < greenData.altEndFrame) {
+            greenVisible = true;
+            greenText = greenData.altText;
 
-            window.updateTextSprite(greenData.sprite, greenData.text, Math.max(0, Math.min(1, greenProgress)));
+            if (currentFrame <= greenData.altTypeEndFrame) {
+              // Typing in
+              greenProgress = (currentFrame - greenData.altStartFrame) / (greenData.altTypeEndFrame - greenData.altStartFrame);
+            } else if (currentFrame < greenData.altDeleteStartFrame) {
+              // Hold fully typed
+              greenProgress = 1;
+            } else {
+              // Deleting
+              greenProgress = 1 - (currentFrame - greenData.altDeleteStartFrame) / (greenData.altEndFrame - greenData.altDeleteStartFrame);
+            }
+          }
+
+          if (greenVisible) {
+            window.updateTextSprite(greenData.sprite, greenText, Math.max(0, Math.min(1, greenProgress)));
           }
 
           greenData.sprite.visible = greenVisible;
           if (window.cardPointerLineRef) window.cardPointerLineRef.visible = greenVisible;
           if (window.cardLineDotRef) window.cardLineDotRef.visible = greenVisible;
+        }
+
+        // === NFC CHIP TEXT (frames 200-250) - "THIS NFC CHIP" ===
+        const nfcData = animData.nfcChip;
+        if (nfcData && nfcData.sprite) {
+          let nfcVisible = false;
+          let nfcProgress = 0;
+
+          if (currentFrame >= nfcData.startFrame && currentFrame < nfcData.endFrame) {
+            nfcVisible = true;
+
+            if (currentFrame <= nfcData.typeEndFrame) {
+              // Typing in
+              nfcProgress = (currentFrame - nfcData.startFrame) / (nfcData.typeEndFrame - nfcData.startFrame);
+            } else if (currentFrame < nfcData.deleteStartFrame) {
+              // Hold fully typed
+              nfcProgress = 1;
+            } else {
+              // Deleting
+              nfcProgress = 1 - (currentFrame - nfcData.deleteStartFrame) / (nfcData.endFrame - nfcData.deleteStartFrame);
+            }
+
+            window.updateTextSprite(nfcData.sprite, nfcData.text, Math.max(0, Math.min(1, nfcProgress)));
+          }
+
+          nfcData.sprite.visible = nfcVisible;
+          if (window.nfcPointerLineRef) window.nfcPointerLineRef.visible = nfcVisible;
+          if (window.nfcLineDotRef) window.nfcLineDotRef.visible = nfcVisible;
+        } else if (currentFrame >= 200 && currentFrame < 250) {
+          // Debug: log if nfcData or sprite is missing
+          if (!nfcData) console.warn('nfcData is missing');
+          else if (!nfcData.sprite) console.warn('nfcData.sprite is missing');
         }
       }
 
