@@ -267,299 +267,329 @@ const BizBoxModel = () => {
     // Store reference to animate rings
     const stageRingsRef = stageRings;
 
-    // === PROCEDURAL TERRAIN & MOUNTAINS ===
+    // === SCI-FI ROOM ENVIRONMENT ===
 
-    // Set scene background to match fog
-    scene.background = new THREE.Color(0xd8dce8);
+    // Dark space background
+    scene.background = new THREE.Color(0x050510);
 
-    // Improved Perlin-like noise function with FIXED seed (consistent terrain)
-    // Fixed permutation table - always produces same terrain
-    const permutation = [
-      151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,
-      8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,
-      35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,
-      134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,
-      55,46,245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,
-      18,169,200,196,135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,
-      250,124,123,5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,
-      189,28,42,223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,
-      172,9,129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,
-      228,251,34,242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,
-      107,49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,
-      138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180
-    ];
-    const perm = [...permutation, ...permutation];
+    // Remove fog for space feel
+    scene.fog = null;
 
-    const fade = (t) => t * t * t * (t * (t * 6 - 15) + 10);
-    const lerp2 = (a, b, t) => a + t * (b - a);
-    const grad = (hash, x, y) => {
-      const h = hash & 3;
-      const u = h < 2 ? x : y;
-      const v = h < 2 ? y : x;
-      return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
-    };
-
-    const perlin2D = (x, y) => {
-      const X = Math.floor(x) & 255;
-      const Y = Math.floor(y) & 255;
-      const xf = x - Math.floor(x);
-      const yf = y - Math.floor(y);
-      const u = fade(xf);
-      const v = fade(yf);
-      const aa = perm[perm[X] + Y];
-      const ab = perm[perm[X] + Y + 1];
-      const ba = perm[perm[X + 1] + Y];
-      const bb = perm[perm[X + 1] + Y + 1];
-      return lerp2(
-        lerp2(grad(aa, xf, yf), grad(ba, xf - 1, yf), u),
-        lerp2(grad(ab, xf, yf - 1), grad(bb, xf - 1, yf - 1), u),
-        v
-      );
-    };
-
-    // Fractal Brownian Motion for natural terrain
-    const fbm = (x, y, octaves = 6, lacunarity = 2, gain = 0.5) => {
-      let value = 0;
-      let amplitude = 1;
-      let frequency = 1;
-      let maxValue = 0;
-
-      for (let i = 0; i < octaves; i++) {
-        value += amplitude * perlin2D(x * frequency, y * frequency);
-        maxValue += amplitude;
-        amplitude *= gain;
-        frequency *= lacunarity;
-      }
-
-      return value / maxValue;
-    };
-
-    // Add atmospheric fog
-    scene.fog = new THREE.FogExp2(0xd8dce8, 0.025);
-
-    // Create 3D terrain mesh
-    const terrainSize = 80;
-    const terrainSegments = 150;
-    const terrainGeometry = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSegments, terrainSegments);
-    const terrainPositions = terrainGeometry.attributes.position;
-
-    for (let i = 0; i < terrainPositions.count; i++) {
-      const x = terrainPositions.getX(i);
-      const y = terrainPositions.getY(i);
-      const distFromCenter = Math.sqrt(x * x + y * y);
-
-      // Base terrain with multiple noise layers
-      let height = 0;
-
-      // Large rolling hills
-      height += fbm(x * 0.02 + 5, y * 0.02 + 5, 4, 2, 0.5) * 3;
-
-      // Medium detail
-      height += fbm(x * 0.05, y * 0.05, 3, 2, 0.5) * 1;
-
-      // Small bumps
-      height += fbm(x * 0.15, y * 0.15, 2, 2, 0.5) * 0.3;
-
-      // Flatten center area (where rings are)
-      const flatRadius = 8;
-      const flattenFactor = Math.max(0, 1 - Math.pow(Math.max(0, flatRadius - distFromCenter) / flatRadius, 2));
-      height *= flattenFactor;
-
-      // Add mountains at the back (negative Y in plane space = negative Z in world)
-      if (y < -10) {
-        const mountainFactor = Math.pow(Math.abs(y + 10) / 30, 1.5);
-        const mountainNoise = fbm(x * 0.03 + 10, y * 0.02, 5, 2.2, 0.55);
-        const ridgeNoise = Math.abs(fbm(x * 0.05, y * 0.03 + 20, 4, 2, 0.5));
-        height += (mountainNoise * 4 + ridgeNoise * 6) * mountainFactor;
-      }
-
-      terrainPositions.setZ(i, height);
-    }
-
-    terrainGeometry.computeVertexNormals();
-
-    // Terrain material with vertex colors for snow effect
-    const terrainMaterial = new THREE.MeshStandardMaterial({
-      color: 0xcdd1dc,
-      metalness: 0.1,
-      roughness: 0.85,
-      flatShading: false,
-      envMapIntensity: 0.3
-    });
-
-    const terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
-    terrain.rotation.x = -Math.PI / 2;
-    terrain.position.set(0, baseY - 0.35, -10);
-    terrain.receiveShadow = true;
-    terrain.castShadow = true;
-    scene.add(terrain);
-
-    // Add distant mountain backdrop (far layer) - 10x HEIGHT
-    const backdropGeometry = new THREE.PlaneGeometry(80, 35, 200, 1);
-    const backdropPositions = backdropGeometry.attributes.position;
-
-    for (let i = 0; i < backdropPositions.count; i++) {
-      const x = backdropPositions.getX(i);
-      const y = backdropPositions.getY(i);
-
-      if (y > 0) {
-        // Sharp peaks - 10x height
-        const peak1 = Math.exp(-Math.pow((x + 15) * 0.12, 2)) * 180;
-        const peak2 = Math.exp(-Math.pow((x - 10) * 0.11, 2)) * 240;
-        const peak3 = Math.exp(-Math.pow((x + 25) * 0.14, 2)) * 150;
-        const peak4 = Math.exp(-Math.pow((x - 22) * 0.13, 2)) * 160;
-        const peak5 = Math.exp(-Math.pow((x + 3) * 0.12, 2)) * 210;
-        // Sharp noise for jagged edges - 10x
-        const sharpNoise = fbm(x * 0.3, 0, 5, 2.5, 0.6) * 60;
-        const ridgeNoise = Math.abs(fbm(x * 0.5, 0, 4, 2, 0.5)) * 40;
-
-        const mountainHeight = Math.max(peak1, peak2, peak3, peak4, peak5) + sharpNoise + ridgeNoise;
-        backdropPositions.setY(i, y + mountainHeight);
-      }
-    }
-
-    backdropGeometry.computeVertexNormals();
-
-    const backdropMaterial = new THREE.MeshStandardMaterial({
-      color: 0xc0c4d0,
-      metalness: 0,
-      roughness: 1,
-      side: THREE.DoubleSide
-    });
-
-    const backdrop = new THREE.Mesh(backdropGeometry, backdropMaterial);
-    backdrop.position.set(0, baseY + 2, -38);
-    scene.add(backdrop);
-
-    // Second backdrop layer - TALL SHARP MOUNTAINS - 10x HEIGHT
-    const backdrop2Geometry = new THREE.PlaneGeometry(100, 50, 250, 1);
-    const backdrop2Positions = backdrop2Geometry.attributes.position;
-
-    for (let i = 0; i < backdrop2Positions.count; i++) {
-      const x = backdrop2Positions.getX(i);
-      const y = backdrop2Positions.getY(i);
-
-      if (y > 0) {
-        // Very sharp tall peaks - 10x height
-        const peak1 = Math.exp(-Math.pow((x + 15) * 0.15, 2)) * 360;
-        const peak2 = Math.exp(-Math.pow((x - 10) * 0.14, 2)) * 540;
-        const peak3 = Math.exp(-Math.pow(x * 0.16, 2)) * 450;
-        const peak4 = Math.exp(-Math.pow((x - 25) * 0.18, 2)) * 300;
-        const peak5 = Math.exp(-Math.pow((x + 30) * 0.16, 2)) * 390;
-        const peak6 = Math.exp(-Math.pow((x + 5) * 0.14, 2)) * 480;
-        const peak7 = Math.exp(-Math.pow((x - 35) * 0.17, 2)) * 270;
-        // Sharp jagged noise - 10x
-        const sharpNoise = fbm(x * 0.4, 0, 6, 2.5, 0.55) * 80;
-        const ridgeNoise = Math.abs(fbm(x * 0.6 + 10, 0, 5, 2, 0.5)) * 60;
-        const microDetail = fbm(x * 0.8, 0, 3, 2, 0.5) * 30;
-
-        const mountainHeight = Math.max(peak1, peak2, peak3, peak4, peak5, peak6, peak7) + sharpNoise + ridgeNoise + microDetail;
-        backdrop2Positions.setY(i, y + mountainHeight);
-      }
-    }
-
-    backdrop2Geometry.computeVertexNormals();
-
-    const backdrop2Material = new THREE.MeshStandardMaterial({
-      color: 0xaeb2be,
-      metalness: 0,
-      roughness: 1,
-      side: THREE.DoubleSide
-    });
-
-    const backdrop2 = new THREE.Mesh(backdrop2Geometry, backdrop2Material);
-    backdrop2.position.set(0, baseY + 2, -28);
-    scene.add(backdrop2);
-
-    // === PARTICLE FOG SYSTEM - Noise-based scattered particles moving left to right ===
-    const fogParticleCount = 12000;
-    const fogSpreadX = 100; // Width of fog area
-    const fogSpreadZ = 50;  // Depth of fog area
-    const fogSpeed = 3.5;   // Fast movement speed
-
-    // Create particle geometry
-    const fogGeometry = new THREE.BufferGeometry();
-    const fogPositions = new Float32Array(fogParticleCount * 3);
-    const fogSizes = new Float32Array(fogParticleCount);
-    const fogOpacities = new Float32Array(fogParticleCount);
-
-    // Use noise to create patchy fog distribution
-    for (let i = 0; i < fogParticleCount; i++) {
-      const x = (Math.random() - 0.5) * fogSpreadX;
-      const z = -Math.random() * fogSpreadZ - 3; // Behind center, towards mountains
-
-      // Use perlin noise to determine if this area has fog
-      const noiseVal = perlin2D(x * 0.08, z * 0.08);
-      const noiseVal2 = perlin2D(x * 0.15 + 100, z * 0.15 + 100);
-      const combinedNoise = (noiseVal + noiseVal2 * 0.5) / 1.5;
-
-      // Only place particles where noise is above threshold (patchy effect)
-      if (combinedNoise > -0.2) {
-        // Height varies slightly based on noise
-        const y = baseY - 0.2 + Math.random() * 0.4 + combinedNoise * 0.3;
-
-        fogPositions[i * 3] = x;
-        fogPositions[i * 3 + 1] = y;
-        fogPositions[i * 3 + 2] = z;
-
-        // Particle size - smaller particles, varied by noise
-        const distanceFactor = Math.abs(z) / fogSpreadZ;
-        fogSizes[i] = (0.08 + Math.random() * 0.15 + distanceFactor * 0.12) * (0.8 + combinedNoise * 0.3);
-
-        // Opacity based on noise and distance
-        fogOpacities[i] = (0.15 + Math.random() * 0.25) * (0.6 + combinedNoise * 0.4);
-      } else {
-        // Place particle far away (effectively hidden)
-        fogPositions[i * 3] = -1000;
-        fogPositions[i * 3 + 1] = -1000;
-        fogPositions[i * 3 + 2] = -1000;
-        fogSizes[i] = 0;
-        fogOpacities[i] = 0;
-      }
-    }
-
-    fogGeometry.setAttribute('position', new THREE.BufferAttribute(fogPositions, 3));
-    fogGeometry.setAttribute('size', new THREE.BufferAttribute(fogSizes, 1));
-    fogGeometry.setAttribute('opacity', new THREE.BufferAttribute(fogOpacities, 1));
-
-    // Custom shader material for fog particles
-    const fogMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        color: { value: new THREE.Color(0xe8ecf4) },
-        time: { value: 0 }
-      },
-      vertexShader: `
-        attribute float size;
-        attribute float opacity;
-        varying float vOpacity;
-        void main() {
-          vOpacity = opacity;
-          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = size * (150.0 / -mvPosition.z);
-          gl_Position = projectionMatrix * mvPosition;
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 color;
-        varying float vOpacity;
-        void main() {
-          // Soft circular particle
-          float dist = length(gl_PointCoord - vec2(0.5));
-          if (dist > 0.5) discard;
-          float alpha = smoothstep(0.5, 0.1, dist) * vOpacity;
-          gl_FragColor = vec4(color, alpha);
-        }
-      `,
+    // === CENTRAL GLOW LIGHT ===
+    const centralGlowGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+    const centralGlowMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
       transparent: true,
-      depthWrite: false,
-      blending: THREE.NormalBlending
+      opacity: 0.9
+    });
+    const centralGlow = new THREE.Mesh(centralGlowGeometry, centralGlowMaterial);
+    centralGlow.position.set(0, 0, -15);
+    scene.add(centralGlow);
+
+    // Outer glow halo
+    const haloGeometry = new THREE.SphereGeometry(2, 32, 32);
+    const haloMaterial = new THREE.MeshBasicMaterial({
+      color: 0x88ccff,
+      transparent: true,
+      opacity: 0.15
+    });
+    const halo = new THREE.Mesh(haloGeometry, haloMaterial);
+    halo.position.set(0, 0, -15);
+    scene.add(halo);
+
+    // === RADIATING LINES FROM CENTER ===
+    const lineGroup = new THREE.Group();
+    const lineMaterialBlue = new THREE.LineBasicMaterial({
+      color: 0x0088ff,
+      transparent: true,
+      opacity: 0.6
+    });
+    const lineMaterialRed = new THREE.LineBasicMaterial({
+      color: 0xff3333,
+      transparent: true,
+      opacity: 0.6
     });
 
-    const fogParticles = new THREE.Points(fogGeometry, fogMaterial);
-    scene.add(fogParticles);
+    // Create radiating lines
+    for (let i = 0; i < 60; i++) {
+      const angle = (i / 60) * Math.PI * 2;
+      const isBlue = angle > Math.PI / 2 && angle < Math.PI * 1.5; // Left side blue
 
-    // Store reference for animation
-    const fogParticlesRef = { particles: fogParticles, speed: fogSpeed, spreadX: fogSpreadX };
+      const lineGeometry = new THREE.BufferGeometry();
+      const startDist = 1 + Math.random() * 2;
+      const endDist = 20 + Math.random() * 30;
+
+      const points = [
+        new THREE.Vector3(
+          Math.cos(angle) * startDist,
+          Math.sin(angle) * startDist * 0.5,
+          -15
+        ),
+        new THREE.Vector3(
+          Math.cos(angle) * endDist,
+          Math.sin(angle) * endDist * 0.5,
+          -15 - Math.random() * 10
+        )
+      ];
+
+      lineGeometry.setFromPoints(points);
+      const line = new THREE.Line(lineGeometry, isBlue ? lineMaterialBlue : lineMaterialRed);
+      lineGroup.add(line);
+    }
+    scene.add(lineGroup);
+
+    // === FLOATING CUBES - BLUE SIDE (LEFT) ===
+    const blueCubes = [];
+    const blueCubeMaterial = new THREE.MeshBasicMaterial({
+      color: 0x0066ff,
+      transparent: true,
+      opacity: 0.4,
+      wireframe: false
+    });
+    const blueWireMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00aaff,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.8
+    });
+
+    for (let i = 0; i < 25; i++) {
+      const size = 0.2 + Math.random() * 0.8;
+      const cubeGeometry = new THREE.BoxGeometry(size, size, size);
+      const cube = new THREE.Mesh(cubeGeometry, blueCubeMaterial.clone());
+      const wireframe = new THREE.Mesh(cubeGeometry, blueWireMaterial.clone());
+
+      cube.position.set(
+        -5 - Math.random() * 20,
+        (Math.random() - 0.5) * 15,
+        -10 - Math.random() * 30
+      );
+      wireframe.position.copy(cube.position);
+
+      cube.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+      wireframe.rotation.copy(cube.rotation);
+
+      cube.userData = {
+        rotSpeed: { x: (Math.random() - 0.5) * 0.02, y: (Math.random() - 0.5) * 0.02 },
+        floatOffset: Math.random() * Math.PI * 2
+      };
+
+      scene.add(cube);
+      scene.add(wireframe);
+      blueCubes.push({ cube, wireframe });
+    }
+
+    // === FLOATING CUBES - RED SIDE (RIGHT) ===
+    const redCubes = [];
+    const redCubeMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff2222,
+      transparent: true,
+      opacity: 0.4,
+      wireframe: false
+    });
+    const redWireMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff6666,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.8
+    });
+
+    for (let i = 0; i < 25; i++) {
+      const size = 0.2 + Math.random() * 0.8;
+      const cubeGeometry = new THREE.BoxGeometry(size, size, size);
+      const cube = new THREE.Mesh(cubeGeometry, redCubeMaterial.clone());
+      const wireframe = new THREE.Mesh(cubeGeometry, redWireMaterial.clone());
+
+      cube.position.set(
+        5 + Math.random() * 20,
+        (Math.random() - 0.5) * 15,
+        -10 - Math.random() * 30
+      );
+      wireframe.position.copy(cube.position);
+
+      cube.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+      wireframe.rotation.copy(cube.rotation);
+
+      cube.userData = {
+        rotSpeed: { x: (Math.random() - 0.5) * 0.02, y: (Math.random() - 0.5) * 0.02 },
+        floatOffset: Math.random() * Math.PI * 2
+      };
+
+      scene.add(cube);
+      scene.add(wireframe);
+      redCubes.push({ cube, wireframe });
+    }
+
+    // === GLOWING TUBES/CYLINDERS - BLUE SIDE ===
+    const blueTubes = [];
+    for (let i = 0; i < 15; i++) {
+      const tubeRadius = 0.02 + Math.random() * 0.05;
+      const tubeLength = 2 + Math.random() * 8;
+      const tubeGeometry = new THREE.CylinderGeometry(tubeRadius, tubeRadius, tubeLength, 8);
+      const tubeMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00aaff,
+        transparent: true,
+        opacity: 0.7
+      });
+      const tube = new THREE.Mesh(tubeGeometry, tubeMaterial);
+
+      tube.position.set(
+        -3 - Math.random() * 25,
+        (Math.random() - 0.5) * 12,
+        -8 - Math.random() * 25
+      );
+      tube.rotation.set(
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+        Math.random() * Math.PI
+      );
+
+      scene.add(tube);
+      blueTubes.push(tube);
+    }
+
+    // === GLOWING TUBES/CYLINDERS - RED SIDE ===
+    const redTubes = [];
+    for (let i = 0; i < 15; i++) {
+      const tubeRadius = 0.02 + Math.random() * 0.05;
+      const tubeLength = 2 + Math.random() * 8;
+      const tubeGeometry = new THREE.CylinderGeometry(tubeRadius, tubeRadius, tubeLength, 8);
+      const tubeMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff4444,
+        transparent: true,
+        opacity: 0.7
+      });
+      const tube = new THREE.Mesh(tubeGeometry, tubeMaterial);
+
+      tube.position.set(
+        3 + Math.random() * 25,
+        (Math.random() - 0.5) * 12,
+        -8 - Math.random() * 25
+      );
+      tube.rotation.set(
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+        Math.random() * Math.PI
+      );
+
+      scene.add(tube);
+      redTubes.push(tube);
+    }
+
+    // === GRID FLOOR ===
+    const gridSize = 100;
+    const gridDivisions = 50;
+    const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x222244, 0x111133);
+    gridHelper.position.set(0, baseY - 0.5, -20);
+    gridHelper.material.transparent = true;
+    gridHelper.material.opacity = 0.3;
+    scene.add(gridHelper);
+
+    // === STAR PARTICLES ===
+    const starCount = 2000;
+    const starGeometry = new THREE.BufferGeometry();
+    const starPositions = new Float32Array(starCount * 3);
+    const starColors = new Float32Array(starCount * 3);
+
+    for (let i = 0; i < starCount; i++) {
+      const x = (Math.random() - 0.5) * 100;
+      const y = (Math.random() - 0.5) * 50;
+      const z = -10 - Math.random() * 50;
+
+      starPositions[i * 3] = x;
+      starPositions[i * 3 + 1] = y;
+      starPositions[i * 3 + 2] = z;
+
+      // Color based on side (blue left, red right)
+      if (x < 0) {
+        starColors[i * 3] = 0.2 + Math.random() * 0.3;     // R
+        starColors[i * 3 + 1] = 0.5 + Math.random() * 0.5; // G
+        starColors[i * 3 + 2] = 1;                          // B
+      } else {
+        starColors[i * 3] = 1;                              // R
+        starColors[i * 3 + 1] = 0.2 + Math.random() * 0.3; // G
+        starColors[i * 3 + 2] = 0.2 + Math.random() * 0.3; // B
+      }
+    }
+
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    starGeometry.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+
+    const starMaterial = new THREE.PointsMaterial({
+      size: 0.1,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.8,
+      sizeAttenuation: true
+    });
+
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+
+    // === WIREFRAME PANELS - BLUE SIDE ===
+    for (let i = 0; i < 8; i++) {
+      const panelWidth = 1 + Math.random() * 3;
+      const panelHeight = 1 + Math.random() * 3;
+      const panelGeometry = new THREE.PlaneGeometry(panelWidth, panelHeight, 4, 4);
+      const panelMaterial = new THREE.MeshBasicMaterial({
+        color: 0x0066ff,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.3,
+        side: THREE.DoubleSide
+      });
+      const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+
+      panel.position.set(
+        -8 - Math.random() * 15,
+        (Math.random() - 0.5) * 10,
+        -5 - Math.random() * 20
+      );
+      panel.rotation.set(
+        (Math.random() - 0.5) * 0.5,
+        Math.random() * Math.PI * 0.3,
+        (Math.random() - 0.5) * 0.3
+      );
+
+      scene.add(panel);
+    }
+
+    // === WIREFRAME PANELS - RED SIDE ===
+    for (let i = 0; i < 8; i++) {
+      const panelWidth = 1 + Math.random() * 3;
+      const panelHeight = 1 + Math.random() * 3;
+      const panelGeometry = new THREE.PlaneGeometry(panelWidth, panelHeight, 4, 4);
+      const panelMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff3333,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.3,
+        side: THREE.DoubleSide
+      });
+      const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+
+      panel.position.set(
+        8 + Math.random() * 15,
+        (Math.random() - 0.5) * 10,
+        -5 - Math.random() * 20
+      );
+      panel.rotation.set(
+        (Math.random() - 0.5) * 0.5,
+        -Math.random() * Math.PI * 0.3,
+        (Math.random() - 0.5) * 0.3
+      );
+
+      scene.add(panel);
+    }
+
+    // Store references for animation
+    const scifiElements = {
+      blueCubes,
+      redCubes,
+      centralGlow,
+      halo,
+      stars
+    };
 
     const loader = new GLTFLoader();
 
@@ -1674,26 +1704,35 @@ const BizBoxModel = () => {
         }
       });
 
-      // === ANIMATE PARTICLE FOG - Fast movement left to right ===
-      if (fogParticlesRef.particles) {
-        const positions = fogParticlesRef.particles.geometry.attributes.position.array;
-        const halfSpread = fogParticlesRef.spreadX / 2;
+      // === ANIMATE SCI-FI CUBES ===
+      // Animate blue cubes
+      scifiElements.blueCubes.forEach(({ cube, wireframe }) => {
+        cube.rotation.x += cube.userData.rotSpeed.x;
+        cube.rotation.y += cube.userData.rotSpeed.y;
+        wireframe.rotation.copy(cube.rotation);
 
-        for (let i = 0; i < positions.length; i += 3) {
-          // Skip hidden particles
-          if (positions[i] < -500) continue;
+        // Subtle floating
+        const float = Math.sin(floatPhaseRef.current + cube.userData.floatOffset) * 0.02;
+        cube.position.y += float * delta;
+        wireframe.position.copy(cube.position);
+      });
 
-          // Move particle to the right
-          positions[i] += fogParticlesRef.speed * delta;
+      // Animate red cubes
+      scifiElements.redCubes.forEach(({ cube, wireframe }) => {
+        cube.rotation.x += cube.userData.rotSpeed.x;
+        cube.rotation.y += cube.userData.rotSpeed.y;
+        wireframe.rotation.copy(cube.rotation);
 
-          // Wrap around when particle goes too far right
-          if (positions[i] > halfSpread) {
-            positions[i] = -halfSpread;
-          }
-        }
+        // Subtle floating
+        const float = Math.sin(floatPhaseRef.current + cube.userData.floatOffset) * 0.02;
+        cube.position.y += float * delta;
+        wireframe.position.copy(cube.position);
+      });
 
-        fogParticlesRef.particles.geometry.attributes.position.needsUpdate = true;
-      }
+      // Pulse central glow
+      const glowPulse = 0.7 + Math.sin(floatPhaseRef.current * 2) * 0.3;
+      scifiElements.centralGlow.material.opacity = glowPulse;
+      scifiElements.halo.material.opacity = 0.1 + Math.sin(floatPhaseRef.current * 1.5) * 0.05;
 
       // === FLOATING EFFECT FOR BOX ===
       if (modelRef.current) {
