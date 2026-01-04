@@ -108,6 +108,139 @@ const BizBoxModel = () => {
     frontLight.position.set(0, 2, 10);
     scene.add(frontLight);
 
+    // === STAGE (Concentric rings with center cylinder - sharp edges) ===
+    const stageRings = [];
+    const ringCount = 4;
+    const baseY = -1.2;
+    const ringHeight = 0.08;
+    const gap = 0.03; // Gap between rings
+
+    // Create white material for all rings
+    const whiteMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      metalness: 0.3,
+      roughness: 0.4,
+      envMapIntensity: 0.8
+    });
+
+    // Helper function to create sharp-edged ring using ExtrudeGeometry
+    const createSharpRing = (innerRadius, outerRadius, height) => {
+      const segments = 128; // High poly count for smooth circular shape
+      const shape = new THREE.Shape();
+      shape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false, segments);
+      const hole = new THREE.Path();
+      hole.absarc(0, 0, innerRadius, 0, Math.PI * 2, true, segments);
+      shape.holes.push(hole);
+
+      const extrudeSettings = {
+        depth: height,
+        bevelEnabled: false,
+        curveSegments: segments
+      };
+
+      return new THREE.ExtrudeGeometry(shape, extrudeSettings);
+    };
+
+    // Center cylinder (innermost)
+    const centerRadius = 0.5;
+    const centerGeometry = new THREE.CylinderGeometry(centerRadius, centerRadius, ringHeight, 128);
+    const centerCylinder = new THREE.Mesh(centerGeometry, whiteMaterial.clone());
+    centerCylinder.position.set(0, baseY, 0);
+    centerCylinder.receiveShadow = true;
+    centerCylinder.castShadow = true;
+    centerCylinder.userData = { baseY: baseY, floatOffset: 0, floatSpeed: 0.8 };
+    scene.add(centerCylinder);
+    stageRings.push(centerCylinder);
+
+    // Blue glow material for inner walls (bright core)
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: 0x60a5fa,
+      transparent: true,
+      opacity: 1,
+      side: THREE.BackSide
+    });
+
+    // Outer glow layer (soft bloom effect)
+    const glowOuterMaterial = new THREE.MeshBasicMaterial({
+      color: 0x3b82f6,
+      transparent: true,
+      opacity: 0.4,
+      side: THREE.BackSide
+    });
+
+    // Create concentric rings around the center with sharp edges
+    const ringWidth = 0.45; // Width of each ring
+    for (let i = 0; i < ringCount; i++) {
+      const innerRadius = centerRadius + gap + (i * (ringWidth + gap));
+      const outerRadius = innerRadius + ringWidth;
+
+      // Use ExtrudeGeometry for sharp-edged rings
+      const ringGeometry = createSharpRing(innerRadius, outerRadius, ringHeight);
+
+      const ring = new THREE.Mesh(ringGeometry, whiteMaterial.clone());
+      ring.rotation.x = -Math.PI / 2; // Lay flat
+      ring.position.set(0, baseY - ringHeight / 2, 0);
+      ring.receiveShadow = true;
+      ring.castShadow = true;
+
+      // Add blue glow on inner wall of ring (cylinder inside)
+      // Core glow layer
+      const glowGeometry = new THREE.CylinderGeometry(innerRadius, innerRadius, ringHeight * 1.2, 128, 1, true);
+      const glow = new THREE.Mesh(glowGeometry, glowMaterial.clone());
+      glow.position.set(0, baseY, 0);
+      scene.add(glow);
+
+      // Outer soft glow layer (larger, more transparent)
+      const glowOuterGeometry = new THREE.CylinderGeometry(innerRadius - 0.02, innerRadius - 0.02, ringHeight * 1.5, 128, 1, true);
+      const glowOuter = new THREE.Mesh(glowOuterGeometry, glowOuterMaterial.clone());
+      glowOuter.position.set(0, baseY, 0);
+      scene.add(glowOuter);
+
+      // Store animation data - each ring has different speed/offset
+      ring.userData = {
+        baseY: baseY - ringHeight / 2,
+        floatOffset: (i + 1) * 0.8, // Offset for wave effect
+        floatSpeed: 0.6 + (i * 0.15), // Slightly different speeds
+        glow: glow, // Reference to glow for animation
+        glowOuter: glowOuter,
+        glowBaseY: baseY
+      };
+
+      scene.add(ring);
+      stageRings.push(ring);
+    }
+
+    // Add glow to center cylinder outer wall
+    const centerGlowMaterial = new THREE.MeshBasicMaterial({
+      color: 0x60a5fa,
+      transparent: true,
+      opacity: 1,
+      side: THREE.FrontSide
+    });
+    const centerGlowGeometry = new THREE.CylinderGeometry(centerRadius, centerRadius, ringHeight * 1.2, 128, 1, true);
+    const centerGlow = new THREE.Mesh(centerGlowGeometry, centerGlowMaterial);
+    centerGlow.position.set(0, baseY, 0);
+    scene.add(centerGlow);
+
+    // Outer glow for center
+    const centerGlowOuterMaterial = new THREE.MeshBasicMaterial({
+      color: 0x3b82f6,
+      transparent: true,
+      opacity: 0.4,
+      side: THREE.FrontSide
+    });
+    const centerGlowOuterGeometry = new THREE.CylinderGeometry(centerRadius + 0.02, centerRadius + 0.02, ringHeight * 1.5, 128, 1, true);
+    const centerGlowOuter = new THREE.Mesh(centerGlowOuterGeometry, centerGlowOuterMaterial);
+    centerGlowOuter.position.set(0, baseY, 0);
+    scene.add(centerGlowOuter);
+
+    stageRings[0].userData.glow = centerGlow;
+    stageRings[0].userData.glowOuter = centerGlowOuter;
+    stageRings[0].userData.glowBaseY = baseY;
+
+    // Store reference to animate rings
+    const stageRingsRef = stageRings;
+
     const loader = new GLTFLoader();
 
     // Load BizBox model first
@@ -321,11 +454,12 @@ const BizBoxModel = () => {
       scrollProgressRef.current += (targetScrollRef.current - scrollProgressRef.current) * scrollSmoothing;
       const progress = scrollProgressRef.current;
 
-      // Total frames = 200
+      // Total frames = 250
       // Frames 0-100: Box animation (card follows via bone parent)
       // Frames 100-150: Card moves towards screen
-      // Frames 150-200: Bizcard becomes glassy/transparent, chip becomes white
-      const totalFrames = 200;
+      // Frames 150-200: Card rotates 180 degrees
+      // Frames 200-250: Bizcard becomes glassy/transparent, chip becomes yellow
+      const totalFrames = 250;
       const currentFrame = progress * totalFrames;
 
       // === BOX ANIMATION (frames 0-100) ===
@@ -344,6 +478,7 @@ const BizBoxModel = () => {
       // === BIZCARD ANIMATION ===
       // Frames 0-100: Card follows bone animation automatically (parented)
       // Frames 100-150: Card moves towards screen
+      // Frames 150-200: Card rotates 180 degrees
       if (bizCardRef.current) {
         const card = bizCardRef.current;
 
@@ -352,48 +487,66 @@ const BizBoxModel = () => {
           // Just keep at initial position/rotation relative to bone
           card.position.copy(cardInitialPos.current);
           card.rotation.copy(cardInitialRot.current);
-        } else {
-          // Card animation progress (0 to 1 for frames 100-150, clamped at 1)
-          const cardProgress = easeOutQuint(Math.min((currentFrame - 100) / 50, 1));
+        } else if (currentFrame <= 150) {
+          // Frames 100-150: Card moves towards screen
+          const cardProgress = easeOutQuint((currentFrame - 100) / 50);
 
-          // === ADJUST THESE VALUES FOR FINAL CARD POSITION ===
-          // Movement from initial position (lerp from 0 to target value)
+          // Movement from initial position
           const moveX = lerp(0, 3, cardProgress);   // towards screen
-          const moveY = lerp(0, -2, cardProgress);     // up/down
-          const moveZ = lerp(0, 0, cardProgress);     // left/right
+          const moveY = lerp(0, -2, cardProgress);  // up/down
+          const moveZ = lerp(0, 0, cardProgress);   // left/right
 
           card.position.x = cardInitialPos.current.x + moveX;
           card.position.y = cardInitialPos.current.y + moveY;
           card.position.z = cardInitialPos.current.z + moveZ;
 
-          // === ADJUST THESE VALUES FOR FINAL CARD ROTATION ===
-          // Rotation change (lerp from 0 to target value in radians)
-          const rotateX = lerp(0, 0, cardProgress);   // tilt forward/backward
-          const rotateY = lerp(0, 0, cardProgress);   // turn left/right
-          const rotateZ = lerp(0, -1, cardProgress);   // roll
+          // Initial rotation during move
+          const rotateX = lerp(0, 0, cardProgress);
+          const rotateY = lerp(0, 0, cardProgress);
+          const rotateZ = lerp(0, -1, cardProgress);
 
           card.rotation.x = cardInitialRot.current.x + rotateX;
           card.rotation.y = cardInitialRot.current.y + rotateY;
           card.rotation.z = cardInitialRot.current.z + rotateZ;
+        } else {
+          // Frames 150-200: Card rotates 180 degrees (then stays)
+          const rotateProgress = easeOutCubic(Math.min((currentFrame - 150) / 50, 1));
 
-          // Subtle floating when card is fully out
-          if (cardProgress > 0.8) {
-            const floatIntensity = (cardProgress - 0.8) / 0.2;
+          // Keep final position from frames 100-150
+          const finalMoveX = 3;
+          const finalMoveY = -2;
+          const finalMoveZ = 0;
+
+          card.position.x = cardInitialPos.current.x + finalMoveX;
+          card.position.y = cardInitialPos.current.y + finalMoveY;
+          card.position.z = cardInitialPos.current.z + finalMoveZ;
+
+          // Rotation: start from -1 (end of previous phase), add 180 degrees (Math.PI)
+          const baseRotZ = -1;
+          const rotate180 = lerp(0, Math.PI, rotateProgress); // 180 degrees
+
+          card.rotation.x = cardInitialRot.current.x;
+          card.rotation.y = cardInitialRot.current.y;
+          card.rotation.z = cardInitialRot.current.z + baseRotZ + rotate180;
+
+          // Subtle floating after rotation
+          if (rotateProgress > 0.5) {
+            const floatIntensity = (rotateProgress - 0.5) / 0.5;
             const cardFloat = Math.sin(floatPhaseRef.current * 2) * 0.025 * floatIntensity;
             card.position.y += cardFloat;
           }
         }
       }
 
-      // === GLASSY EFFECT (frames 150-200) ===
-      // Bizcard becomes glassy/transparent, chip becomes white
+      // === GLASSY EFFECT (frames 200-250) ===
+      // Bizcard becomes glassy/transparent, chip becomes yellow
       if (bizCardMeshRef.current && chipMeshRef.current) {
         const bizCardMesh = bizCardMeshRef.current;
         const chipMesh = chipMeshRef.current;
 
-        if (currentFrame > 150) {
-          // Progress for glassy effect (0 to 1 for frames 150-200)
-          const glassyProgress = easeOutCubic(Math.min((currentFrame - 150) / 50, 1));
+        if (currentFrame > 200) {
+          // Progress for glassy effect (0 to 1 for frames 200-250)
+          const glassyProgress = easeOutCubic(Math.min((currentFrame - 200) / 50, 1));
 
           // Make bizcard glassy/transparent
           if (bizCardMesh.material) {
@@ -423,6 +576,20 @@ const BizBoxModel = () => {
           }
         }
       }
+
+      // === ANIMATE STAGE RINGS ===
+      stageRingsRef.forEach((ring) => {
+        const floatAmount = Math.sin(floatPhaseRef.current * ring.userData.floatSpeed + ring.userData.floatOffset) * 0.08;
+        ring.position.y = ring.userData.baseY + floatAmount;
+
+        // Animate all glow elements with the ring
+        if (ring.userData.glow) {
+          ring.userData.glow.position.y = ring.userData.glowBaseY + floatAmount;
+        }
+        if (ring.userData.glowOuter) {
+          ring.userData.glowOuter.position.y = ring.userData.glowBaseY + floatAmount;
+        }
+      });
 
       // === FLOATING EFFECT FOR BOX ===
       if (modelRef.current) {

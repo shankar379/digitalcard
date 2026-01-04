@@ -6,7 +6,7 @@
 
 /* Scroll spacer - creates scroll height for animation */
 .scroll-spacer {
-  height: 530vh; /* Extended for 200 frames of animation */
+  height: 660vh; /* Extended for 250 frames of animation */
   pointer-events: none;
 }
 
@@ -103,7 +103,7 @@
 /* Responsive */
 @media (max-width: 768px) {
   .scroll-spacer {
-    height: 465vh;
+    height: 580vh;
   }
 
   .scroll-indicator {
@@ -128,7 +128,7 @@
 
 @media (max-width: 480px) {
   .scroll-spacer {
-    height: 400vh;
+    height: 500vh;
   }
 
   .scroll-indicator {
