@@ -44,6 +44,15 @@ const BizBoxModel = () => {
   // Scroll indicator ref
   const scrollIndicatorRef = useRef(null);
 
+  // Intro camera animation refs
+  const introProgressRef = useRef(0);
+  const introCompleteRef = useRef(false);
+  const introDuration = 2.5; // Duration in seconds
+
+  // Camera positions for intro animation
+  const cameraStartPos = { x: 0, y: 8, z: 1 };   // Start from top
+  const cameraEndPos = { x: 0, y: 1, z: 5.5 };   // Final position
+
   const handleScroll = useCallback(() => {
     const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
     const scrollTop = window.scrollY;
@@ -57,14 +66,15 @@ const BizBoxModel = () => {
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
-    // Camera
+    // Camera - starts from top position for intro animation
     const camera = new THREE.PerspectiveCamera(
       45,
       containerRef.current.clientWidth / containerRef.current.clientHeight,
       0.1,
       1000
     );
-    camera.position.set(0, 1, 5.5);
+    // Start camera at intro position (top)
+    camera.position.set(cameraStartPos.x, cameraStartPos.y, cameraStartPos.z);
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
 
@@ -1147,6 +1157,26 @@ const BizBoxModel = () => {
       const delta = clockRef.current.getDelta();
       timeRef.current += delta;
       floatPhaseRef.current += delta;
+
+      // === INTRO CAMERA ANIMATION ===
+      // Animate camera from top to final position when page loads
+      if (!introCompleteRef.current) {
+        introProgressRef.current += delta / introDuration;
+
+        if (introProgressRef.current >= 1) {
+          introProgressRef.current = 1;
+          introCompleteRef.current = true;
+        }
+
+        // Use easeOutQuint for smooth deceleration
+        const introEase = easeOutQuint(introProgressRef.current);
+
+        // Interpolate camera position
+        camera.position.x = lerp(cameraStartPos.x, cameraEndPos.x, introEase);
+        camera.position.y = lerp(cameraStartPos.y, cameraEndPos.y, introEase);
+        camera.position.z = lerp(cameraStartPos.z, cameraEndPos.z, introEase);
+        camera.lookAt(0, 0, 0);
+      }
 
       // Smooth scroll interpolation
       const scrollSmoothing = 0.06;
