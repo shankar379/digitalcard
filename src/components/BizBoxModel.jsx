@@ -370,7 +370,7 @@ const BizBoxModel = () => {
         const mountainFactor = Math.pow(Math.abs(y + 10) / 30, 1.5);
         const mountainNoise = fbm(x * 0.03 + 10, y * 0.02, 5, 2.2, 0.55);
         const ridgeNoise = Math.abs(fbm(x * 0.05, y * 0.03 + 20, 4, 2, 0.5));
-        height += (mountainNoise * 4 + ridgeNoise * 6) * mountainFactor;
+        height += (mountainNoise * 8 + ridgeNoise * 12) * mountainFactor;
       }
 
       terrainPositions.setZ(i, height);
@@ -403,17 +403,19 @@ const BizBoxModel = () => {
       const y = backdropPositions.getY(i);
 
       if (y > 0) {
-        // Sharp peaks - 10x height
-        const peak1 = Math.exp(-Math.pow((x + 15) * 0.12, 2)) * 180;
-        const peak2 = Math.exp(-Math.pow((x - 10) * 0.11, 2)) * 240;
-        const peak3 = Math.exp(-Math.pow((x + 25) * 0.14, 2)) * 150;
-        const peak4 = Math.exp(-Math.pow((x - 22) * 0.13, 2)) * 160;
-        const peak5 = Math.exp(-Math.pow((x + 3) * 0.12, 2)) * 210;
-        // Sharp noise for jagged edges - 10x
-        const sharpNoise = fbm(x * 0.3, 0, 5, 2.5, 0.6) * 60;
-        const ridgeNoise = Math.abs(fbm(x * 0.5, 0, 4, 2, 0.5)) * 40;
+        // Sharp peaks - DRAMATIC HEIGHT
+        const peak1 = Math.exp(-Math.pow((x + 15) * 0.10, 2)) * 320;
+        const peak2 = Math.exp(-Math.pow((x - 10) * 0.09, 2)) * 420;
+        const peak3 = Math.exp(-Math.pow((x + 25) * 0.12, 2)) * 280;
+        const peak4 = Math.exp(-Math.pow((x - 22) * 0.11, 2)) * 300;
+        const peak5 = Math.exp(-Math.pow((x + 3) * 0.10, 2)) * 380;
+        const peak6 = Math.exp(-Math.pow((x - 30) * 0.11, 2)) * 260;
+        const peak7 = Math.exp(-Math.pow((x + 35) * 0.12, 2)) * 240;
+        // Sharp noise for jagged edges
+        const sharpNoise = fbm(x * 0.3, 0, 5, 2.5, 0.6) * 100;
+        const ridgeNoise = Math.abs(fbm(x * 0.5, 0, 4, 2, 0.5)) * 70;
 
-        const mountainHeight = Math.max(peak1, peak2, peak3, peak4, peak5) + sharpNoise + ridgeNoise;
+        const mountainHeight = Math.max(peak1, peak2, peak3, peak4, peak5, peak6, peak7) + sharpNoise + ridgeNoise;
         backdropPositions.setY(i, y + mountainHeight);
       }
     }
@@ -428,7 +430,7 @@ const BizBoxModel = () => {
     });
 
     const backdrop = new THREE.Mesh(backdropGeometry, backdropMaterial);
-    backdrop.position.set(0, baseY + 2, -38);
+    backdrop.position.set(0, baseY + 1, -35);
     scene.add(backdrop);
 
     // Second backdrop layer - TALL SHARP MOUNTAINS - 10x HEIGHT
@@ -440,20 +442,22 @@ const BizBoxModel = () => {
       const y = backdrop2Positions.getY(i);
 
       if (y > 0) {
-        // Very sharp tall peaks - 10x height
-        const peak1 = Math.exp(-Math.pow((x + 15) * 0.15, 2)) * 360;
-        const peak2 = Math.exp(-Math.pow((x - 10) * 0.14, 2)) * 540;
-        const peak3 = Math.exp(-Math.pow(x * 0.16, 2)) * 450;
-        const peak4 = Math.exp(-Math.pow((x - 25) * 0.18, 2)) * 300;
-        const peak5 = Math.exp(-Math.pow((x + 30) * 0.16, 2)) * 390;
-        const peak6 = Math.exp(-Math.pow((x + 5) * 0.14, 2)) * 480;
-        const peak7 = Math.exp(-Math.pow((x - 35) * 0.17, 2)) * 270;
-        // Sharp jagged noise - 10x
-        const sharpNoise = fbm(x * 0.4, 0, 6, 2.5, 0.55) * 80;
-        const ridgeNoise = Math.abs(fbm(x * 0.6 + 10, 0, 5, 2, 0.5)) * 60;
-        const microDetail = fbm(x * 0.8, 0, 3, 2, 0.5) * 30;
+        // Very sharp tall peaks - EPIC DRAMATIC MOUNTAINS
+        const peak1 = Math.exp(-Math.pow((x + 15) * 0.12, 2)) * 650;
+        const peak2 = Math.exp(-Math.pow((x - 10) * 0.10, 2)) * 900;
+        const peak3 = Math.exp(-Math.pow(x * 0.11, 2)) * 800;
+        const peak4 = Math.exp(-Math.pow((x - 25) * 0.13, 2)) * 550;
+        const peak5 = Math.exp(-Math.pow((x + 30) * 0.12, 2)) * 700;
+        const peak6 = Math.exp(-Math.pow((x + 5) * 0.10, 2)) * 850;
+        const peak7 = Math.exp(-Math.pow((x - 35) * 0.13, 2)) * 500;
+        const peak8 = Math.exp(-Math.pow((x - 45) * 0.14, 2)) * 450;
+        const peak9 = Math.exp(-Math.pow((x + 42) * 0.13, 2)) * 480;
+        // Sharp jagged noise for dramatic edges
+        const sharpNoise = fbm(x * 0.4, 0, 6, 2.5, 0.55) * 150;
+        const ridgeNoise = Math.abs(fbm(x * 0.6 + 10, 0, 5, 2, 0.5)) * 120;
+        const microDetail = fbm(x * 0.8, 0, 3, 2, 0.5) * 60;
 
-        const mountainHeight = Math.max(peak1, peak2, peak3, peak4, peak5, peak6, peak7) + sharpNoise + ridgeNoise + microDetail;
+        const mountainHeight = Math.max(peak1, peak2, peak3, peak4, peak5, peak6, peak7, peak8, peak9) + sharpNoise + ridgeNoise + microDetail;
         backdrop2Positions.setY(i, y + mountainHeight);
       }
     }
@@ -468,7 +472,7 @@ const BizBoxModel = () => {
     });
 
     const backdrop2 = new THREE.Mesh(backdrop2Geometry, backdrop2Material);
-    backdrop2.position.set(0, baseY + 2, -28);
+    backdrop2.position.set(0, baseY + 0, -25);
     scene.add(backdrop2);
 
     // === PARTICLE FOG SYSTEM - Noise-based scattered particles moving left to right ===
