@@ -603,12 +603,14 @@ const BizBoxModel = () => {
           }
         });
 
-        // Add visible sphere that follows "Bone003" animation
-        const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 32); // Larger sphere
+        // === DEBUG SPHERE - RED (follows Bone003) ===
+        // To enable for debugging: set debugSphere.visible = true
+        const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
         const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // Red color
         const debugSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
         debugSphere.name = 'debugSphere';
-        scene.add(debugSphere); // Add to scene first
+        debugSphere.visible = false; // Hidden by default - set to true for debugging
+        scene.add(debugSphere);
 
         // Find Bone003 and parent sphere directly to it
         let boneRef = null;
@@ -637,11 +639,13 @@ const BizBoxModel = () => {
         window.boneRef = boneRef;
         window.skinnedMeshRef = skinnedMeshRef;
 
-        // === ADD BLUE SPHERE THAT FOLLOWS BONE002 ===
+        // === DEBUG SPHERE - BLUE (follows Bone002) ===
+        // To enable for debugging: set blueSphere.visible = true
         const blueSphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
         const blueSphereMaterial = new THREE.MeshBasicMaterial({ color: 0x0066ff }); // Blue color
         const blueSphere = new THREE.Mesh(blueSphereGeometry, blueSphereMaterial);
         blueSphere.name = 'blueSphere';
+        blueSphere.visible = false; // Hidden by default - set to true for debugging
         scene.add(blueSphere);
 
         // Find Bone002 and parent blue sphere to it
@@ -971,11 +975,13 @@ const BizBoxModel = () => {
 
             bizCardRef.current = cardModel;
 
-            // Add green sphere that follows bizcard model
+            // === DEBUG SPHERE - GREEN (follows BizCard model) ===
+            // To enable for debugging: set greenSphere.visible = true
             const greenSphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
             const greenSphereMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // Green color
             const greenSphere = new THREE.Mesh(greenSphereGeometry, greenSphereMaterial);
             greenSphere.name = 'greenDebugSphere';
+            greenSphere.visible = false; // Hidden by default - set to true for debugging
 
             // Parent green sphere to bizcard model so it follows animation
             cardModel.add(greenSphere);

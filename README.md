@@ -104,6 +104,37 @@ cardModel.rotation.z = 1.55;
 - `rotation.z` - roll left/right
 - Common values: `Math.PI / 2` = 90°, `Math.PI` = 180°, `1.55` ≈ 89°
 
+## Debug Spheres
+
+The project includes hidden debug spheres that help visualize bone/object positions during development. These are disabled by default but can be enabled for debugging.
+
+### Available Debug Spheres
+
+| Sphere | Color | Follows | Location in Code |
+|--------|-------|---------|------------------|
+| Red | `#ff0000` | Bone003 (OuterBox) | Line ~610 |
+| Blue | `#0066ff` | Bone002 (OuterBox) | Line ~647 |
+| Green | `#00ff00` | BizCard model | Line ~982 |
+
+### Enabling Debug Spheres
+
+In `src/components/BizBoxModel.jsx`, find the debug sphere you want to enable and change `visible = false` to `visible = true`:
+
+```javascript
+// === DEBUG SPHERE - RED (follows Bone003) ===
+// To enable for debugging: set debugSphere.visible = true
+debugSphere.visible = true; // Change from false to true
+```
+
+### Text Labels with Pointer Lines
+
+Each debug sphere has an associated text label with a bent pointer line:
+- **Red sphere**: "OUTER_BOX / BONE_003" (frames 0-30)
+- **Blue sphere**: "OUTER_BOX / BONE_002" (frames 70-100)
+- **Green sphere**: "BIZCARD / NFC_CHIP" (frames 110-150)
+- **Green sphere alt**: "SCAN THIS / QR CODE" (frames 150-200)
+- **NFC Chip**: "THIS NFC / CHIP" (frames 200-250)
+
 ## Build for Production
 
 ```bash
