@@ -32,6 +32,30 @@ const BizBoxModel = () => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const [showPreloader, setShowPreloader] = useState(true);
+
+  // Card color state
+  const [activeCardColor, setActiveCardColor] = useState('gold');
+  const cardMaterialRef = useRef(null);
+
+  // Color options for the card
+  const cardColors = {
+    gold: { color: 0xD4AF37, emissive: 0xD4AF37, name: 'Gold' },
+    white: { color: 0xFFFFFF, emissive: 0xFFFFFF, name: 'White' },
+    black: { color: 0x1a1a1a, emissive: 0x333333, name: 'Black' },
+    navy: { color: 0x000080, emissive: 0x000066, name: 'Navy' },
+    silver: { color: 0xC0C0C0, emissive: 0xA0A0A0, name: 'Silver' }
+  };
+
+  // Function to change card color
+  const changeCardColor = (colorKey) => {
+    setActiveCardColor(colorKey);
+    if (cardMaterialRef.current && cardColors[colorKey]) {
+      const colorData = cardColors[colorKey];
+      cardMaterialRef.current.color.setHex(colorData.color);
+      cardMaterialRef.current.emissive.setHex(colorData.emissive);
+      cardMaterialRef.current.needsUpdate = true;
+    }
+  };
   const loadingProgressRef = useRef({ bizbox: 0, bizcard: 0 });
   const showPreloaderRef = useRef(true); // Ref for animation loop
 
@@ -630,7 +654,7 @@ const BizBoxModel = () => {
         const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // Red color
         const debugSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
         debugSphere.name = 'debugSphere';
-        debugSphere.visible = false; // Hidden by default - set to true for debugging
+        debugSphere.visible = true; // Visible for debugging
         scene.add(debugSphere);
 
         // Find Bone003 and parent sphere directly to it
@@ -666,7 +690,7 @@ const BizBoxModel = () => {
         const blueSphereMaterial = new THREE.MeshBasicMaterial({ color: 0x0066ff }); // Blue color
         const blueSphere = new THREE.Mesh(blueSphereGeometry, blueSphereMaterial);
         blueSphere.name = 'blueSphere';
-        blueSphere.visible = false; // Hidden by default - set to true for debugging
+        blueSphere.visible = true; // Visible for debugging
         scene.add(blueSphere);
 
         // Find Bone002 and parent blue sphere to it
@@ -695,11 +719,11 @@ const BizBoxModel = () => {
 
         // === ADD TEXT LABEL WITH BENT LINE POINTING TO RED SPHERE ===
         // Create dynamic text sprite with typing animation support
-        const createDynamicTextSprite = (fontSize = 48) => {
+        const createDynamicTextSprite = (fontSize = 36) => {
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
-          canvas.width = 512;
-          canvas.height = 128;
+          canvas.width = 900;
+          canvas.height = 400;
 
           const texture = new THREE.CanvasTexture(canvas);
           texture.needsUpdate = true;
@@ -712,7 +736,7 @@ const BizBoxModel = () => {
           });
 
           const sprite = new THREE.Sprite(spriteMaterial);
-          sprite.scale.set(2, 0.5, 1);
+          sprite.scale.set(3.5, 1.4, 1);
 
           // Store canvas data for updates
           sprite.userData = {
@@ -743,10 +767,25 @@ const BizBoxModel = () => {
           context.textAlign = 'left';
           context.textBaseline = 'middle';
 
-          // Split text into lines
+          // Split text into lines (title + description)
           const lines = displayText.split('\n');
+          const titleFontSize = fontSize;
+          const descFontSize = fontSize * 0.6;
+          const lineSpacing = 20;
+          
           lines.forEach((line, index) => {
-            context.fillText(line, 10, 40 + index * (fontSize + 5));
+            if (index === 0) {
+              // Title - larger font, positioned higher
+              context.font = `bold ${titleFontSize}px Arial`;
+              context.fillStyle = 'white';
+              context.fillText(line, 10, 80);
+            } else {
+              // Description - smaller font, positioned below title with proper spacing
+              context.font = `${descFontSize}px Arial`;
+              context.fillStyle = 'rgba(255, 255, 255, 0.8)';
+              const yPos = 80 + titleFontSize + lineSpacing + (index - 1) * (descFontSize + lineSpacing);
+              context.fillText(line, 10, yPos);
+            }
           });
 
           // Add cursor if not fully typed
@@ -772,7 +811,7 @@ const BizBoxModel = () => {
         window.textAnimationData = {
           red: {
             sprite: redTextLabel,
-            text: 'OUTER_BOX\nBONE_003',
+            text: 'PREMIUM PACKAGING BOX\nElegant design for your card',
             startFrame: 0,
             typeEndFrame: 5,       // Typing animation over 5 frames
             deleteStartFrame: 25,  // Delete animation over 5 frames
@@ -781,7 +820,7 @@ const BizBoxModel = () => {
           },
           blue: {
             sprite: null, // Will be set below
-            text: 'OUTER_BOX\nBONE_002',
+            text: 'SCAN QR TO KNOW MORE\nQuick access to your profile',
             startFrame: 70,
             typeEndFrame: 75,      // Typing animation over 5 frames
             deleteStartFrame: 95,  // Delete animation over 5 frames
@@ -790,7 +829,7 @@ const BizBoxModel = () => {
           },
           green: {
             sprite: null, // Will be set below
-            text: 'BIZCARD\nNFC_CHIP',
+            text: 'THIS IS YOUR PREMIUM CARD\nTap to share your profile instantly',
             startFrame: 110,
             typeEndFrame: 115,     // Typing animation over 5 frames
             deleteStartFrame: 145, // Delete animation over 5 frames
@@ -933,28 +972,161 @@ const BizBoxModel = () => {
                 // Store references to bizcard and chip meshes
                 if (child.name === 'bizcard') {
                   bizCardMeshRef.current = child;
-                  // Store original material properties
-                  if (child.material) {
-                    originalMaterialsRef.current.bizcard = {
-                      color: child.material.color ? child.material.color.clone() : new THREE.Color(0xffffff),
-                      opacity: child.material.opacity !== undefined ? child.material.opacity : 1,
-                      transparent: child.material.transparent || false
-                    };
-                    // Enable transparency for later animation
-                    child.material.transparent = true;
+
+                  // Create subtle gold noise texture for realism
+                  const noiseCanvas = document.createElement('canvas');
+                  noiseCanvas.width = 512;
+                  noiseCanvas.height = 512;
+                  const noiseCtx = noiseCanvas.getContext('2d');
+                  const imageData = noiseCtx.createImageData(512, 512);
+
+                  for (let i = 0; i < imageData.data.length; i += 4) {
+                    // Medium gold variations
+                    const baseGold = 180 + Math.random() * 75;
+                    const variation = Math.random() * 0.25; // 25% variation
+                    imageData.data[i] = Math.min(255, baseGold + variation * 45);     // R
+                    imageData.data[i + 1] = Math.min(255, 155 + variation * 50);      // G
+                    imageData.data[i + 2] = Math.min(255, 40 + variation * 30);       // B
+                    imageData.data[i + 3] = 255;
                   }
-                  console.log('Found bizcard mesh');
+                  noiseCtx.putImageData(imageData, 0, 0);
+
+                  const goldNoiseTexture = new THREE.CanvasTexture(noiseCanvas);
+                  goldNoiseTexture.wrapS = THREE.RepeatWrapping;
+                  goldNoiseTexture.wrapT = THREE.RepeatWrapping;
+                  goldNoiseTexture.repeat.set(1, 1);
+
+                  // Create roughness noise for surface imperfections
+                  const roughnessCanvas = document.createElement('canvas');
+                  roughnessCanvas.width = 256;
+                  roughnessCanvas.height = 256;
+                  const roughnessCtx = roughnessCanvas.getContext('2d');
+                  const roughnessData = roughnessCtx.createImageData(256, 256);
+
+                  for (let i = 0; i < roughnessData.data.length; i += 4) {
+                    const noise = 15 + Math.random() * 60; // Stronger roughness variation
+                    roughnessData.data[i] = noise;
+                    roughnessData.data[i + 1] = noise;
+                    roughnessData.data[i + 2] = noise;
+                    roughnessData.data[i + 3] = 255;
+                  }
+                  roughnessCtx.putImageData(roughnessData, 0, 0);
+
+                  const roughnessTexture = new THREE.CanvasTexture(roughnessCanvas);
+                  roughnessTexture.wrapS = THREE.RepeatWrapping;
+                  roughnessTexture.wrapT = THREE.RepeatWrapping;
+
+                  // Create realistic gold environment cube texture for reflections
+                  const goldEnvColors = [
+                    '#FFE4B5', '#DEB887', '#FFD700', '#DAA520', '#B8860B', '#8B7355'
+                  ];
+                  const envCubeTextures = goldEnvColors.map(color => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 128;
+                    canvas.height = 128;
+                    const ctx = canvas.getContext('2d');
+                    const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 90);
+                    gradient.addColorStop(0, '#FFFACD');
+                    gradient.addColorStop(0.5, color);
+                    gradient.addColorStop(1, '#8B6914');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, 128, 128);
+                    return canvas;
+                  });
+
+                  const goldEnvMap = new THREE.CubeTexture(envCubeTextures);
+                  goldEnvMap.needsUpdate = true;
+
+                  // Apply realistic polished gold plate material with noise
+                  const cardMaterial = new THREE.MeshPhysicalMaterial({
+                    map: goldNoiseTexture,
+                    roughnessMap: roughnessTexture,
+                    metalness: 1.0,
+                    roughness: 0.15,
+                    envMap: goldEnvMap,
+                    envMapIntensity: 1.5,
+                    reflectivity: 1.0,
+                    clearcoat: 0.6,
+                    clearcoatRoughness: 0.08,
+                    emissive: new THREE.Color(0xD4AF37),
+                    emissiveIntensity: 0.2,
+                    transparent: true,
+                    opacity: 1
+                  });
+                  child.material = cardMaterial;
+                  cardMaterialRef.current = cardMaterial; // Store reference for color changing
+
+                  // Store original material properties
+                  originalMaterialsRef.current.bizcard = {
+                    color: new THREE.Color(0xFFD700),
+                    opacity: 1,
+                    transparent: true
+                  };
+                  console.log('Found bizcard mesh - applied realistic gold plate with noise');
                 }
 
                 if (child.name === 'chip') {
                   chipMeshRef.current = child;
-                  // Store original material properties
-                  if (child.material) {
-                    originalMaterialsRef.current.chip = {
-                      color: child.material.color ? child.material.color.clone() : new THREE.Color(0xffffff)
-                    };
+
+                  // Create gold noise texture for chip
+                  const chipNoiseCanvas = document.createElement('canvas');
+                  chipNoiseCanvas.width = 256;
+                  chipNoiseCanvas.height = 256;
+                  const chipNoiseCtx = chipNoiseCanvas.getContext('2d');
+                  const chipImageData = chipNoiseCtx.createImageData(256, 256);
+
+                  for (let i = 0; i < chipImageData.data.length; i += 4) {
+                    const variation = Math.random() * 0.5; // 50% variation
+                    chipImageData.data[i] = Math.min(255, 180 + variation * 70);      // R
+                    chipImageData.data[i + 1] = Math.min(255, 130 + variation * 60);  // G
+                    chipImageData.data[i + 2] = Math.min(255, 20 + variation * 35);   // B
+                    chipImageData.data[i + 3] = 255;
                   }
-                  console.log('Found chip mesh');
+                  chipNoiseCtx.putImageData(chipImageData, 0, 0);
+
+                  const chipNoiseTexture = new THREE.CanvasTexture(chipNoiseCanvas);
+
+                  // Create gold environment for chip
+                  const chipEnvColors = [
+                    '#FFD700', '#FFA500', '#DAA520', '#B8860B', '#CD853F', '#8B4513'
+                  ];
+                  const chipEnvTextures = chipEnvColors.map(color => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 64;
+                    canvas.height = 64;
+                    const ctx = canvas.getContext('2d');
+                    const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 45);
+                    gradient.addColorStop(0, '#FFFACD');
+                    gradient.addColorStop(0.5, color);
+                    gradient.addColorStop(1, '#654321');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, 64, 64);
+                    return canvas;
+                  });
+
+                  const chipEnvMap = new THREE.CubeTexture(chipEnvTextures);
+                  chipEnvMap.needsUpdate = true;
+
+                  // Apply realistic gold chip material with noise
+                  const goldMaterial = new THREE.MeshPhysicalMaterial({
+                    map: chipNoiseTexture,
+                    metalness: 1.0,
+                    roughness: 0.18,
+                    envMap: chipEnvMap,
+                    envMapIntensity: 1.8,
+                    reflectivity: 1.0,
+                    clearcoat: 0.5,
+                    clearcoatRoughness: 0.1,
+                    emissive: new THREE.Color(0xDAA520),
+                    emissiveIntensity: 0.15
+                  });
+                  child.material = goldMaterial;
+
+                  // Store original material properties
+                  originalMaterialsRef.current.chip = {
+                    color: new THREE.Color(0xDAA520)
+                  };
+                  console.log('Found chip mesh - applied realistic gold chip with noise');
                 }
 
                 if (child.material) {
@@ -1002,7 +1174,7 @@ const BizBoxModel = () => {
             const greenSphereMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // Green color
             const greenSphere = new THREE.Mesh(greenSphereGeometry, greenSphereMaterial);
             greenSphere.name = 'greenDebugSphere';
-            greenSphere.visible = false; // Hidden by default - set to true for debugging
+            greenSphere.visible = true; // Visible for debugging
 
             // Parent green sphere to bizcard model so it follows animation
             cardModel.add(greenSphere);
@@ -1012,13 +1184,28 @@ const BizBoxModel = () => {
             // Store reference
             window.greenSphereRef = greenSphere;
 
+            // === DEBUG SPHERE - PINK (follows BizCard model on opposite side) ===
+            const pinkSphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+            const pinkSphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff69b4 }); // Pink color
+            const pinkSphere = new THREE.Mesh(pinkSphereGeometry, pinkSphereMaterial);
+            pinkSphere.name = 'pinkDebugSphere';
+            pinkSphere.visible = true; // Visible for debugging
+
+            // Parent pink sphere to bizcard model on the opposite side
+            cardModel.add(pinkSphere);
+            pinkSphere.position.set(0, -0.3, 0); // Position on opposite side (negative z)
+            console.log('Pink sphere parented to BizCard on opposite side');
+
+            // Store reference
+            window.pinkSphereRef = pinkSphere;
+
             // === ADD TEXT LABEL WITH BENT LINE POINTING TO GREEN SPHERE (BIZCARD) ===
             // Create dynamic text sprite for green sphere
-            const createGreenTextSprite = (fontSize = 48) => {
+            const createGreenTextSprite = (fontSize = 24) => {
               const canvas = document.createElement('canvas');
               const context = canvas.getContext('2d');
-              canvas.width = 512;
-              canvas.height = 128;
+              canvas.width = 900;
+              canvas.height = 400;
 
               const texture = new THREE.CanvasTexture(canvas);
               texture.needsUpdate = true;
@@ -1031,7 +1218,7 @@ const BizBoxModel = () => {
               });
 
               const sprite = new THREE.Sprite(spriteMaterial);
-              sprite.scale.set(2, 0.5, 1);
+              sprite.scale.set(2.5, 1.2, 1); // Increased scale to show full text
 
               sprite.userData = {
                 canvas: canvas,
@@ -1046,7 +1233,7 @@ const BizBoxModel = () => {
             };
 
             // Create text label for bizcard
-            const cardTextLabel = createGreenTextSprite(48);
+            const cardTextLabel = createGreenTextSprite(24); // Reduced font size by half (48 -> 24)
             sceneRef.current.add(cardTextLabel);
             cardTextLabel.visible = false;
 
@@ -1083,21 +1270,22 @@ const BizBoxModel = () => {
 
             // === ADD TEXT LABEL WITH BENT LINE POINTING TO NFC CHIP (frames 200-250) ===
             // Create text label for NFC chip using same approach as green text
-            const nfcTextLabel = createGreenTextSprite(48);
+            const nfcTextLabel = createGreenTextSprite(24); // Reduced font size to match card text
             sceneRef.current.add(nfcTextLabel);
             nfcTextLabel.visible = false;
-            nfcTextLabel.scale.set(2.5, 0.7, 1);
+            nfcTextLabel.scale.set(2.5, 1.2, 1); // Increased height to match card text scale
 
             // Draw initial text on the sprite to ensure it works
             if (nfcTextLabel.userData && nfcTextLabel.userData.context) {
               const ctx = nfcTextLabel.userData.context;
-              ctx.clearRect(0, 0, 512, 128);
-              ctx.font = 'bold 48px Arial';
+              ctx.clearRect(0, 0, 900, 400);
+              ctx.font = 'bold 24px Arial'; // Reduced to match card text size
               ctx.fillStyle = 'white';
               ctx.textAlign = 'left';
               ctx.textBaseline = 'middle';
-              ctx.fillText('THIS NFC', 10, 40);
-              ctx.fillText('CHIP', 10, 93);
+              ctx.fillText('THIS NFC', 10, 80);
+              ctx.font = 'bold 24px Arial';
+              ctx.fillText('CHIP', 10, 80 + 24 + 15); // Proper spacing
               nfcTextLabel.userData.texture.needsUpdate = true;
               console.log('NFC text drawn on canvas');
             }
@@ -1291,18 +1479,18 @@ const BizBoxModel = () => {
         // Position line start at sphere
         const blueLineStart = blueSphereWorldPos.clone();
 
-        // Bend point - offset up and to the LEFT
+        // Bend point - offset up and to the LEFT, moved forward
         const blueBendPoint = new THREE.Vector3(
           blueSphereWorldPos.x - 0.6,
           blueSphereWorldPos.y + 0.4,
-          blueSphereWorldPos.z
+          blueSphereWorldPos.z + 0.3  // Move forward (positive z)
         );
 
-        // End point - horizontal from bend point (going left)
+        // End point - horizontal from bend point (going left), moved forward
         const blueLineEnd = new THREE.Vector3(
           blueBendPoint.x - 1.0,
           blueBendPoint.y,
-          blueBendPoint.z
+          blueBendPoint.z  // Keep at forward position
         );
 
         // Update line geometry
@@ -1312,7 +1500,7 @@ const BizBoxModel = () => {
         bluePositions[2] = blueLineStart.z;
         bluePositions[3] = blueBendPoint.x;
         bluePositions[4] = blueBendPoint.y;
-        bluePositions[5] = blueBendPoint.z;
+        bluePositions[5] = blueBendPoint.z;  // Forward position
         bluePositions[6] = blueLineEnd.x;
         bluePositions[7] = blueLineEnd.y;
         bluePositions[8] = blueLineEnd.z;
@@ -1323,31 +1511,31 @@ const BizBoxModel = () => {
           window.blueLineDotRef.position.copy(blueLineStart);
         }
 
-        // Update text position (at line end, offset to the left)
+        // Update text position (at line end, offset to the left), moved forward
         window.blueTextLabelRef.position.set(blueLineEnd.x - 0.8, blueLineEnd.y, blueLineEnd.z);
       }
 
-      // === UPDATE TEXT LABEL AND POINTER LINE TO FOLLOW GREEN SPHERE (BIZCARD) ===
-      if (window.greenSphereRef && window.cardTextLabelRef && window.cardPointerLineRef) {
-        // Get green sphere world position
-        const greenSphereWorldPos = new THREE.Vector3();
-        window.greenSphereRef.getWorldPosition(greenSphereWorldPos);
+      // === UPDATE TEXT LABEL AND POINTER LINE TO FOLLOW PINK SPHERE (BIZCARD) ===
+      if (window.pinkSphereRef && window.cardTextLabelRef && window.cardPointerLineRef) {
+        // Get pink sphere world position
+        const pinkSphereWorldPos = new THREE.Vector3();
+        window.pinkSphereRef.getWorldPosition(pinkSphereWorldPos);
 
         // Position line start at sphere
-        const cardLineStart = greenSphereWorldPos.clone();
+        const cardLineStart = pinkSphereWorldPos.clone();
 
-        // Bend point - offset up and to the RIGHT (same direction as red sphere)
+        // Bend point - offset up and to the RIGHT (same direction as red sphere), moved to front
         const cardBendPoint = new THREE.Vector3(
-          greenSphereWorldPos.x + 0.6,
-          greenSphereWorldPos.y + 0.4,
-          greenSphereWorldPos.z
+          pinkSphereWorldPos.x + 0.3,  // Moved left (reduced from 0.6)
+          pinkSphereWorldPos.y + 0.4,
+          pinkSphereWorldPos.z + 0.3  // Moved back more (reduced from 0.5)
         );
 
-        // End point - horizontal from bend point (going right)
+        // End point - horizontal from bend point (going right), moved to front side
         const cardLineEnd = new THREE.Vector3(
           cardBendPoint.x + 1.0,
           cardBendPoint.y,
-          cardBendPoint.z
+          cardBendPoint.z  // Keep at front side
         );
 
         // Update line geometry
@@ -1357,7 +1545,7 @@ const BizBoxModel = () => {
         cardPositions[2] = cardLineStart.z;
         cardPositions[3] = cardBendPoint.x;
         cardPositions[4] = cardBendPoint.y;
-        cardPositions[5] = cardBendPoint.z;
+        cardPositions[5] = cardBendPoint.z;  // At front side
         cardPositions[6] = cardLineEnd.x;
         cardPositions[7] = cardLineEnd.y;
         cardPositions[8] = cardLineEnd.z;
@@ -1368,8 +1556,9 @@ const BizBoxModel = () => {
           window.cardLineDotRef.position.copy(cardLineStart);
         }
 
-        // Update text position (at line end, offset to the right)
-        window.cardTextLabelRef.position.set(cardLineEnd.x + 0.8, cardLineEnd.y, cardLineEnd.z);
+        // Update text position (at line end, offset to the right - closer to card), moved -0.3 forward
+        window.cardTextLabelRef.position.set(cardLineEnd.x + 0.5, cardLineEnd.y - 0.5, cardLineEnd.z);
+        window.cardTextLabelRef.scale.set(2.5, 1.2, 1); // Increased height to show full text
       }
 
       // === UPDATE TEXT LABEL AND POINTER LINE TO FOLLOW NFC CHIP ===
@@ -1830,6 +2019,43 @@ const BizBoxModel = () => {
 
       {/* Main content */}
       <div ref={containerRef} className="bizbox-model-container">
+        {/* Color dots - left side */}
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '30px',
+            left: '30px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            alignItems: 'center',
+            zIndex: 1000
+          }}
+        >
+          {Object.entries(cardColors).map(([key, value]) => (
+            <button
+              key={key}
+              onClick={() => changeCardColor(key)}
+              title={value.name}
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                border: activeCardColor === key ? '3px solid #fff' : '2px solid rgba(255,255,255,0.5)',
+                background: key === 'gold' ? '#D4AF37' :
+                           key === 'white' ? '#FFFFFF' :
+                           key === 'black' ? '#1a1a1a' :
+                           key === 'navy' ? '#000080' : '#C0C0C0',
+                cursor: 'pointer',
+                boxShadow: activeCardColor === key ? '0 0 10px rgba(255,255,255,0.5)' : 'none',
+                transition: 'all 0.2s ease',
+                transform: activeCardColor === key ? 'scale(1.1)' : 'scale(1)'
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Frame counter - right side */}
         <div
           ref={scrollIndicatorRef}
           style={{
