@@ -135,12 +135,31 @@ const BizBoxModel = () => {
     const ringHeight = 0.08;
     const gap = 0.03; // Gap between rings
 
-    // Create white material for all rings
+    // Load rock texture for rings
+    const ringTextureLoader = new THREE.TextureLoader();
+    const ringTexture = ringTextureLoader.load('/textures/rings_rock_texture.png', (texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(0.12, 0.12); // Even larger texture size
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      console.log('Ring rock texture loaded');
+    });
+
+    // Create textured material for all rings with emission and opacity
     const whiteMaterial = new THREE.MeshStandardMaterial({
       color: 0xffffff,
+      map: ringTexture,
+      emissiveMap: ringTexture,
+      emissive: new THREE.Color(0xffffff),
+      emissiveIntensity: 0.3,
       metalness: 0.3,
       roughness: 0.4,
-      envMapIntensity: 0.8
+      envMapIntensity: 0.8,
+      transparent: true,
+      opacity: 0.85
     });
 
     // Helper function to create sharp-edged ring using ExtrudeGeometry
@@ -334,8 +353,7 @@ const BizBoxModel = () => {
       return value / maxValue;
     };
 
-    // Add atmospheric fog
-    scene.fog = new THREE.FogExp2(0xd8dce8, 0.025);
+    // Fog disabled for clearer view
 
     // Create 3D terrain mesh
     const terrainSize = 80;
@@ -475,95 +493,7 @@ const BizBoxModel = () => {
     backdrop2.position.set(0, baseY + 0, -25);
     scene.add(backdrop2);
 
-    // === PARTICLE FOG SYSTEM - Noise-based scattered particles moving left to right ===
-    const fogParticleCount = 12000;
-    const fogSpreadX = 100; // Width of fog area
-    const fogSpreadZ = 50;  // Depth of fog area
-    const fogSpeed = 3.5;   // Fast movement speed
-
-    // Create particle geometry
-    const fogGeometry = new THREE.BufferGeometry();
-    const fogPositions = new Float32Array(fogParticleCount * 3);
-    const fogSizes = new Float32Array(fogParticleCount);
-    const fogOpacities = new Float32Array(fogParticleCount);
-
-    // Use noise to create patchy fog distribution
-    for (let i = 0; i < fogParticleCount; i++) {
-      const x = (Math.random() - 0.5) * fogSpreadX;
-      const z = -Math.random() * fogSpreadZ - 3; // Behind center, towards mountains
-
-      // Use perlin noise to determine if this area has fog
-      const noiseVal = perlin2D(x * 0.08, z * 0.08);
-      const noiseVal2 = perlin2D(x * 0.15 + 100, z * 0.15 + 100);
-      const combinedNoise = (noiseVal + noiseVal2 * 0.5) / 1.5;
-
-      // Only place particles where noise is above threshold (patchy effect)
-      if (combinedNoise > -0.2) {
-        // Height varies slightly based on noise
-        const y = baseY - 0.2 + Math.random() * 0.4 + combinedNoise * 0.3;
-
-        fogPositions[i * 3] = x;
-        fogPositions[i * 3 + 1] = y;
-        fogPositions[i * 3 + 2] = z;
-
-        // Particle size - smaller particles, varied by noise
-        const distanceFactor = Math.abs(z) / fogSpreadZ;
-        fogSizes[i] = (0.08 + Math.random() * 0.15 + distanceFactor * 0.12) * (0.8 + combinedNoise * 0.3);
-
-        // Opacity based on noise and distance
-        fogOpacities[i] = (0.15 + Math.random() * 0.25) * (0.6 + combinedNoise * 0.4);
-      } else {
-        // Place particle far away (effectively hidden)
-        fogPositions[i * 3] = -1000;
-        fogPositions[i * 3 + 1] = -1000;
-        fogPositions[i * 3 + 2] = -1000;
-        fogSizes[i] = 0;
-        fogOpacities[i] = 0;
-      }
-    }
-
-    fogGeometry.setAttribute('position', new THREE.BufferAttribute(fogPositions, 3));
-    fogGeometry.setAttribute('size', new THREE.BufferAttribute(fogSizes, 1));
-    fogGeometry.setAttribute('opacity', new THREE.BufferAttribute(fogOpacities, 1));
-
-    // Custom shader material for fog particles
-    const fogMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        color: { value: new THREE.Color(0xe8ecf4) },
-        time: { value: 0 }
-      },
-      vertexShader: `
-        attribute float size;
-        attribute float opacity;
-        varying float vOpacity;
-        void main() {
-          vOpacity = opacity;
-          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = size * (150.0 / -mvPosition.z);
-          gl_Position = projectionMatrix * mvPosition;
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 color;
-        varying float vOpacity;
-        void main() {
-          // Soft circular particle
-          float dist = length(gl_PointCoord - vec2(0.5));
-          if (dist > 0.5) discard;
-          float alpha = smoothstep(0.5, 0.1, dist) * vOpacity;
-          gl_FragColor = vec4(color, alpha);
-        }
-      `,
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.NormalBlending
-    });
-
-    const fogParticles = new THREE.Points(fogGeometry, fogMaterial);
-    scene.add(fogParticles);
-
-    // Store reference for animation
-    const fogParticlesRef = { particles: fogParticles, speed: fogSpeed, spreadX: fogSpreadX };
+    // Particle fog disabled for clearer view
 
     const loader = new GLTFLoader();
 
@@ -598,15 +528,85 @@ const BizBoxModel = () => {
             child.castShadow = true;
             child.receiveShadow = true;
 
-            if (child.material) {
-              const materials = Array.isArray(child.material) ? child.material : [child.material];
-              materials.forEach((mat) => {
-                if (mat) {
-                  mat.envMapIntensity = 0.8;
-                  mat.needsUpdate = true;
-                }
+            // Log all materials
+            const mats = Array.isArray(child.material) ? child.material : [child.material];
+            mats.forEach((m) => {
+              if (m) {
+                console.log(`Material: "${m.name}" on mesh: "${child.name}"`);
+              }
+            });
+
+            // Replace material completely with clean material (no textures)
+            const oldMat = child.material;
+            const oldColor = oldMat && oldMat.color ? oldMat.color.clone() : new THREE.Color(0xffffff);
+            const matName = oldMat ? oldMat.name : '';
+
+            // Create fresh clean material without any texture maps
+            const cleanMaterial = new THREE.MeshStandardMaterial({
+              color: oldColor,
+              metalness: 0.1,
+              roughness: 0.5,
+              envMapIntensity: 0.8,
+              // No texture maps at all
+              map: null,
+              normalMap: null,
+              roughnessMap: null,
+              metalnessMap: null,
+              aoMap: null,
+              bumpMap: null,
+              displacementMap: null,
+              emissiveMap: null,
+              // Clean rendering
+              flatShading: false,
+              side: THREE.FrontSide
+            });
+
+            // Override "basecolor" material specifically
+            if (matName === 'basecolor') {
+              cleanMaterial.color = new THREE.Color(0xffffff);
+              cleanMaterial.emissive = new THREE.Color(0xffffff);
+              cleanMaterial.emissiveIntensity = 0.3;
+            }
+
+            // Apply "Top_page-0001.jpg" texture to "Material"
+            if (matName === 'Material') {
+              const textureLoader = new THREE.TextureLoader();
+              textureLoader.load('/textures/Top_page-0001.jpg', (texture) => {
+                texture.colorSpace = THREE.SRGBColorSpace;
+                texture.minFilter = THREE.LinearMipmapLinearFilter;
+                texture.magFilter = THREE.LinearFilter;
+                texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                texture.flipY = false;
+                cleanMaterial.map = texture;
+                cleanMaterial.emissiveMap = texture;
+                cleanMaterial.emissive = new THREE.Color(0xffffff);
+                cleanMaterial.emissiveIntensity = 0.3;
+                cleanMaterial.color = new THREE.Color(0xffffff);
+                cleanMaterial.needsUpdate = true;
+                console.log('Applied Top_page texture to Material with emission');
               });
             }
+
+            // Apply "Inside_page-0001.jpg" texture to "inside"
+            if (matName === 'inside') {
+              const textureLoader = new THREE.TextureLoader();
+              textureLoader.load('/textures/Inside_page-0001.jpg', (texture) => {
+                texture.colorSpace = THREE.SRGBColorSpace;
+                texture.minFilter = THREE.LinearMipmapLinearFilter;
+                texture.magFilter = THREE.LinearFilter;
+                texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                texture.flipY = false;
+                cleanMaterial.map = texture;
+                cleanMaterial.emissiveMap = texture;
+                cleanMaterial.emissive = new THREE.Color(0xffffff);
+                cleanMaterial.emissiveIntensity = 0.3;
+                cleanMaterial.color = new THREE.Color(0xffffff);
+                cleanMaterial.needsUpdate = true;
+                console.log('Applied Inside_page texture to inside with emission');
+              });
+            }
+
+            child.material = cleanMaterial;
           }
         });
 
@@ -974,7 +974,7 @@ const BizBoxModel = () => {
 
             // Adjust card position and rotation (modify these values as needed)
             cardModel.position.x = -0.02;
-            cardModel.position.y = 0.9;
+            cardModel.position.y = 0.8;
             cardModel.position.z = 0;
             cardModel.rotation.x = 0;
             cardModel.rotation.y = 0;
@@ -1665,39 +1665,35 @@ const BizBoxModel = () => {
       }
 
       // === ANIMATE STAGE RINGS ===
-      stageRingsRef.forEach((ring) => {
-        const floatAmount = Math.sin(floatPhaseRef.current * ring.userData.floatSpeed + ring.userData.floatOffset) * 0.03;
+      stageRingsRef.forEach((ring, index) => {
+        // Alternating direction: even rings go up when odd rings go down
+        const direction = index % 2 === 0 ? 1 : -1;
+        const floatAmount = Math.sin(floatPhaseRef.current * ring.userData.floatSpeed + ring.userData.floatOffset) * 0.06 * direction;
         ring.position.y = ring.userData.baseY + floatAmount;
+
+        // Rotation settings for all rings
+        const rotationSpeed = 0.02 + index * 0.005; // Very slow speed for each ring
+        const rotationDirection = index % 2 === 0 ? 1 : -1;
+
+        // Skip rotation for center cylinder (index 0) - keep it flat
+        if (index > 0) {
+          ring.rotation.z += rotationSpeed * delta * rotationDirection;
+        }
 
         // Animate all glow elements with the ring
         if (ring.userData.glow) {
           ring.userData.glow.position.y = ring.userData.glowBaseY + floatAmount;
+          if (index > 0) {
+            ring.userData.glow.rotation.y += rotationSpeed * delta * rotationDirection;
+          }
         }
         if (ring.userData.glowOuter) {
           ring.userData.glowOuter.position.y = ring.userData.glowBaseY + floatAmount;
-        }
-      });
-
-      // === ANIMATE PARTICLE FOG - Fast movement left to right ===
-      if (fogParticlesRef.particles) {
-        const positions = fogParticlesRef.particles.geometry.attributes.position.array;
-        const halfSpread = fogParticlesRef.spreadX / 2;
-
-        for (let i = 0; i < positions.length; i += 3) {
-          // Skip hidden particles
-          if (positions[i] < -500) continue;
-
-          // Move particle to the right
-          positions[i] += fogParticlesRef.speed * delta;
-
-          // Wrap around when particle goes too far right
-          if (positions[i] > halfSpread) {
-            positions[i] = -halfSpread;
+          if (index > 0) {
+            ring.userData.glowOuter.rotation.y += rotationSpeed * delta * rotationDirection;
           }
         }
-
-        fogParticlesRef.particles.geometry.attributes.position.needsUpdate = true;
-      }
+      });
 
       // === FLOATING EFFECT FOR BOX ===
       if (modelRef.current) {
