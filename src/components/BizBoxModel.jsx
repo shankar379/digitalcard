@@ -654,7 +654,7 @@ const BizBoxModel = () => {
         const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // Red color
         const debugSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
         debugSphere.name = 'debugSphere';
-        debugSphere.visible = true; // Visible for debugging
+        debugSphere.visible = false; // Hidden - set to true for debugging
         scene.add(debugSphere);
 
         // Find Bone003 and parent sphere directly to it
@@ -690,7 +690,7 @@ const BizBoxModel = () => {
         const blueSphereMaterial = new THREE.MeshBasicMaterial({ color: 0x0066ff }); // Blue color
         const blueSphere = new THREE.Mesh(blueSphereGeometry, blueSphereMaterial);
         blueSphere.name = 'blueSphere';
-        blueSphere.visible = true; // Visible for debugging
+        blueSphere.visible = false; // Hidden - set to true for debugging
         scene.add(blueSphere);
 
         // Find Bone002 and parent blue sphere to it
@@ -788,14 +788,7 @@ const BizBoxModel = () => {
             }
           });
 
-          // Add cursor if not fully typed
-          if (progress > 0 && progress < 1) {
-            const lastLineIndex = lines.length - 1;
-            const lastLine = lines[lastLineIndex] || '';
-            const cursorX = 10 + context.measureText(lastLine).width + 2;
-            const cursorY = 40 + lastLineIndex * (fontSize + 5);
-            context.fillRect(cursorX, cursorY - fontSize/2, 3, fontSize);
-          }
+          // Cursor removed - no longer showing typing cursor
 
           texture.needsUpdate = true;
           sprite.userData.currentText = displayText;
@@ -857,7 +850,12 @@ const BizBoxModel = () => {
         const textLabel = redTextLabel;
 
         // Create bent line (two segments at 120 degree angle)
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+        const lineMaterial = new THREE.LineBasicMaterial({ 
+          color: 0xffffff, 
+          linewidth: 2,
+          transparent: true,
+          opacity: 0  // Start invisible, will fade in
+        });
 
         // Line points - will be updated in animation loop
         const linePoints = [
@@ -873,7 +871,11 @@ const BizBoxModel = () => {
 
         // Small dot at the start of line (touching sphere)
         const dotGeometry = new THREE.SphereGeometry(0.03, 16, 16);
-        const dotMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const dotMaterial = new THREE.MeshBasicMaterial({ 
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0  // Start invisible, will fade in
+        });
         const lineDot = new THREE.Mesh(dotGeometry, dotMaterial);
         scene.add(lineDot);
         lineDot.visible = false; // Start hidden
@@ -892,7 +894,12 @@ const BizBoxModel = () => {
         window.textAnimationData.blue.sprite = blueTextLabel;
 
         // Create bent line for blue sphere
-        const blueLineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+        const blueLineMaterial = new THREE.LineBasicMaterial({ 
+          color: 0xffffff, 
+          linewidth: 2,
+          transparent: true,
+          opacity: 0  // Start invisible, will fade in
+        });
         const blueLinePoints = [
           new THREE.Vector3(0, 0, 0),
           new THREE.Vector3(0.6, 0.4, 0),
@@ -905,7 +912,11 @@ const BizBoxModel = () => {
 
         // Small dot at start of line
         const blueDotGeometry = new THREE.SphereGeometry(0.05, 16, 16);
-        const blueDotMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const blueDotMaterial = new THREE.MeshBasicMaterial({ 
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0  // Start invisible, will fade in
+        });
         const blueLineDot = new THREE.Mesh(blueDotGeometry, blueDotMaterial);
         scene.add(blueLineDot);
         blueLineDot.visible = false;
@@ -1174,7 +1185,7 @@ const BizBoxModel = () => {
             const greenSphereMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // Green color
             const greenSphere = new THREE.Mesh(greenSphereGeometry, greenSphereMaterial);
             greenSphere.name = 'greenDebugSphere';
-            greenSphere.visible = true; // Visible for debugging
+            greenSphere.visible = false; // Hidden - set to true for debugging
 
             // Parent green sphere to bizcard model so it follows animation
             cardModel.add(greenSphere);
@@ -1189,7 +1200,7 @@ const BizBoxModel = () => {
             const pinkSphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff69b4 }); // Pink color
             const pinkSphere = new THREE.Mesh(pinkSphereGeometry, pinkSphereMaterial);
             pinkSphere.name = 'pinkDebugSphere';
-            pinkSphere.visible = true; // Visible for debugging
+            pinkSphere.visible = false; // Hidden - set to true for debugging
 
             // Parent pink sphere to bizcard model on the opposite side
             cardModel.add(pinkSphere);
@@ -1243,7 +1254,12 @@ const BizBoxModel = () => {
             }
 
             // Create bent line for bizcard
-            const cardLineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+            const cardLineMaterial = new THREE.LineBasicMaterial({ 
+              color: 0xffffff, 
+              linewidth: 2,
+              transparent: true,
+              opacity: 0  // Start invisible, will fade in
+            });
             const cardLinePoints = [
               new THREE.Vector3(0, 0, 0),
               new THREE.Vector3(0.6, 0.4, 0),
@@ -1256,7 +1272,11 @@ const BizBoxModel = () => {
 
             // Small dot at start of line
             const cardDotGeometry = new THREE.SphereGeometry(0.05, 16, 16);
-            const cardDotMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const cardDotMaterial = new THREE.MeshBasicMaterial({ 
+              color: 0xffffff,
+              transparent: true,
+              opacity: 0  // Start invisible, will fade in
+            });
             const cardLineDot = new THREE.Mesh(cardDotGeometry, cardDotMaterial);
             sceneRef.current.add(cardLineDot);
             cardLineDot.visible = false;
@@ -1300,7 +1320,12 @@ const BizBoxModel = () => {
             }
 
             // Create bent line for NFC chip - pointing from RIGHT side (same as green text)
-            const nfcLineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+            const nfcLineMaterial = new THREE.LineBasicMaterial({ 
+              color: 0xffffff, 
+              linewidth: 2,
+              transparent: true,
+              opacity: 0  // Start invisible, will fade in
+            });
             const nfcLinePoints = [
               new THREE.Vector3(0, 0, 0),
               new THREE.Vector3(0.6, 0.4, 0),
@@ -1313,7 +1338,11 @@ const BizBoxModel = () => {
 
             // Small dot at start of line
             const nfcDotGeometry = new THREE.SphereGeometry(0.05, 16, 16);
-            const nfcDotMaterial = new THREE.MeshBasicMaterial({ color: 0xFFD700 }); // Yellow dot to match chip
+            const nfcDotMaterial = new THREE.MeshBasicMaterial({ 
+              color: 0xFFD700, // Yellow dot to match chip
+              transparent: true,
+              opacity: 0  // Start invisible, will fade in
+            });
             const nfcLineDot = new THREE.Mesh(nfcDotGeometry, nfcDotMaterial);
             sceneRef.current.add(nfcLineDot);
             nfcLineDot.visible = false;
@@ -1447,17 +1476,22 @@ const BizBoxModel = () => {
           bendPoint.z
         );
 
-        // Update line geometry
+        // Store line points for reveal animation (will be used in text animation section)
+        window.redLineStart = lineStart;
+        window.redBendPoint = bendPoint;
+        window.redLineEnd = lineEnd;
+        
+        // Update line geometry (will be animated by revealLine function)
         const positions = window.pointerLineRef.geometry.attributes.position.array;
         positions[0] = lineStart.x;
         positions[1] = lineStart.y;
         positions[2] = lineStart.z;
-        positions[3] = bendPoint.x;
-        positions[4] = bendPoint.y;
-        positions[5] = bendPoint.z;
-        positions[6] = lineEnd.x;
-        positions[7] = lineEnd.y;
-        positions[8] = lineEnd.z;
+        positions[3] = lineStart.x; // Start at same point (will be revealed)
+        positions[4] = lineStart.y;
+        positions[5] = lineStart.z;
+        positions[6] = lineStart.x; // Start at same point (will be revealed)
+        positions[7] = lineStart.y;
+        positions[8] = lineStart.z;
         window.pointerLineRef.geometry.attributes.position.needsUpdate = true;
 
         // Update dot position (at line start)
@@ -1493,17 +1527,22 @@ const BizBoxModel = () => {
           blueBendPoint.z  // Keep at forward position
         );
 
-        // Update line geometry
+        // Store line points for reveal animation
+        window.blueLineStart = blueLineStart;
+        window.blueBendPoint = blueBendPoint;
+        window.blueLineEnd = blueLineEnd;
+        
+        // Update line geometry (will be animated by revealLine function)
         const bluePositions = window.bluePointerLineRef.geometry.attributes.position.array;
         bluePositions[0] = blueLineStart.x;
         bluePositions[1] = blueLineStart.y;
         bluePositions[2] = blueLineStart.z;
-        bluePositions[3] = blueBendPoint.x;
-        bluePositions[4] = blueBendPoint.y;
-        bluePositions[5] = blueBendPoint.z;  // Forward position
-        bluePositions[6] = blueLineEnd.x;
-        bluePositions[7] = blueLineEnd.y;
-        bluePositions[8] = blueLineEnd.z;
+        bluePositions[3] = blueLineStart.x; // Start at same point (will be revealed)
+        bluePositions[4] = blueLineStart.y;
+        bluePositions[5] = blueLineStart.z;
+        bluePositions[6] = blueLineStart.x; // Start at same point (will be revealed)
+        bluePositions[7] = blueLineStart.y;
+        bluePositions[8] = blueLineStart.z;
         window.bluePointerLineRef.geometry.attributes.position.needsUpdate = true;
 
         // Update dot position (at line start)
@@ -1538,17 +1577,22 @@ const BizBoxModel = () => {
           cardBendPoint.z  // Keep at front side
         );
 
-        // Update line geometry
+        // Store line points for reveal animation
+        window.cardLineStart = cardLineStart;
+        window.cardBendPoint = cardBendPoint;
+        window.cardLineEnd = cardLineEnd;
+        
+        // Update line geometry (will be animated by revealLine function)
         const cardPositions = window.cardPointerLineRef.geometry.attributes.position.array;
         cardPositions[0] = cardLineStart.x;
         cardPositions[1] = cardLineStart.y;
         cardPositions[2] = cardLineStart.z;
-        cardPositions[3] = cardBendPoint.x;
-        cardPositions[4] = cardBendPoint.y;
-        cardPositions[5] = cardBendPoint.z;  // At front side
-        cardPositions[6] = cardLineEnd.x;
-        cardPositions[7] = cardLineEnd.y;
-        cardPositions[8] = cardLineEnd.z;
+        cardPositions[3] = cardLineStart.x; // Start at same point (will be revealed)
+        cardPositions[4] = cardLineStart.y;
+        cardPositions[5] = cardLineStart.z;
+        cardPositions[6] = cardLineStart.x; // Start at same point (will be revealed)
+        cardPositions[7] = cardLineStart.y;
+        cardPositions[8] = cardLineStart.z;
         window.cardPointerLineRef.geometry.attributes.position.needsUpdate = true;
 
         // Update dot position (at line start)
@@ -1585,17 +1629,22 @@ const BizBoxModel = () => {
           nfcBendPoint.z
         );
 
-        // Update line geometry
+        // Store line points for reveal animation
+        window.nfcLineStart = nfcLineStart;
+        window.nfcBendPoint = nfcBendPoint;
+        window.nfcLineEnd = nfcLineEnd;
+        
+        // Update line geometry (will be animated by revealLine function)
         const nfcPositions = window.nfcPointerLineRef.geometry.attributes.position.array;
         nfcPositions[0] = nfcLineStart.x;
         nfcPositions[1] = nfcLineStart.y;
         nfcPositions[2] = nfcLineStart.z;
-        nfcPositions[3] = nfcBendPoint.x;
-        nfcPositions[4] = nfcBendPoint.y;
-        nfcPositions[5] = nfcBendPoint.z;
-        nfcPositions[6] = nfcLineEnd.x;
-        nfcPositions[7] = nfcLineEnd.y;
-        nfcPositions[8] = nfcLineEnd.z;
+        nfcPositions[3] = nfcLineStart.x; // Start at same point (will be revealed)
+        nfcPositions[4] = nfcLineStart.y;
+        nfcPositions[5] = nfcLineStart.z;
+        nfcPositions[6] = nfcLineStart.x; // Start at same point (will be revealed)
+        nfcPositions[7] = nfcLineStart.y;
+        nfcPositions[8] = nfcLineStart.z;
         window.nfcPointerLineRef.geometry.attributes.position.needsUpdate = true;
 
         // Update dot position (at line start, on chip)
@@ -1611,6 +1660,41 @@ const BizBoxModel = () => {
       // Controls visibility and typing animation based on current frame
       if (window.textAnimationData && window.updateTextSprite) {
         const animData = window.textAnimationData;
+
+        // Helper function to reveal line progressively from start to end
+        const revealLine = (lineRef, startPoint, bendPoint, endPoint, progress) => {
+          if (!lineRef || !lineRef.geometry) return;
+          
+          const positions = lineRef.geometry.attributes.position.array;
+          
+          // Always show start point
+          positions[0] = startPoint.x;
+          positions[1] = startPoint.y;
+          positions[2] = startPoint.z;
+          
+          if (progress < 0.5) {
+            // First half: reveal from start to bend point
+            const t = progress * 2; // 0 to 1 for first half
+            positions[3] = startPoint.x + (bendPoint.x - startPoint.x) * t;
+            positions[4] = startPoint.y + (bendPoint.y - startPoint.y) * t;
+            positions[5] = startPoint.z + (bendPoint.z - startPoint.z) * t;
+            // End point same as bend point (not revealed yet)
+            positions[6] = positions[3];
+            positions[7] = positions[4];
+            positions[8] = positions[5];
+          } else {
+            // Second half: bend point is reached, reveal to end point
+            positions[3] = bendPoint.x;
+            positions[4] = bendPoint.y;
+            positions[5] = bendPoint.z;
+            const t = (progress - 0.5) * 2; // 0 to 1 for second half
+            positions[6] = bendPoint.x + (endPoint.x - bendPoint.x) * t;
+            positions[7] = bendPoint.y + (endPoint.y - bendPoint.y) * t;
+            positions[8] = bendPoint.z + (endPoint.z - bendPoint.z) * t;
+          }
+          
+          lineRef.geometry.attributes.position.needsUpdate = true;
+        };
 
         // === RED TEXT (frames 0-30) ===
         const redData = animData.red;
@@ -1636,8 +1720,20 @@ const BizBoxModel = () => {
           }
 
           redData.sprite.visible = redVisible;
-          if (window.pointerLineRef) window.pointerLineRef.visible = redVisible;
-          if (window.lineDotRef) window.lineDotRef.visible = redVisible;
+          // Reveal line progressively from sphere to text
+          if (window.pointerLineRef && window.redLineStart && window.redBendPoint && window.redLineEnd) {
+            window.pointerLineRef.visible = redVisible;
+            if (window.pointerLineRef.material) {
+              window.pointerLineRef.material.opacity = 1; // Fully opaque when visible
+            }
+            revealLine(window.pointerLineRef, window.redLineStart, window.redBendPoint, window.redLineEnd, redProgress);
+          }
+          if (window.lineDotRef) {
+            window.lineDotRef.visible = redVisible;
+            if (window.lineDotRef.material) {
+              window.lineDotRef.material.opacity = redProgress;
+            }
+          }
         }
 
         // === BLUE TEXT (frames 70-100) ===
@@ -1665,8 +1761,20 @@ const BizBoxModel = () => {
           }
 
           blueData.sprite.visible = blueVisible;
-          if (window.bluePointerLineRef) window.bluePointerLineRef.visible = blueVisible;
-          if (window.blueLineDotRef) window.blueLineDotRef.visible = blueVisible;
+          // Reveal line progressively from sphere to text
+          if (window.bluePointerLineRef && window.blueLineStart && window.blueBendPoint && window.blueLineEnd) {
+            window.bluePointerLineRef.visible = blueVisible;
+            if (window.bluePointerLineRef.material) {
+              window.bluePointerLineRef.material.opacity = 1; // Fully opaque when visible
+            }
+            revealLine(window.bluePointerLineRef, window.blueLineStart, window.blueBendPoint, window.blueLineEnd, blueProgress);
+          }
+          if (window.blueLineDotRef) {
+            window.blueLineDotRef.visible = blueVisible;
+            if (window.blueLineDotRef.material) {
+              window.blueLineDotRef.material.opacity = blueProgress;
+            }
+          }
         }
 
         // === GREEN TEXT (frames 110-150, then 150-200 with alt text "SCAN THIS QR CODE") ===
@@ -1714,8 +1822,20 @@ const BizBoxModel = () => {
           }
 
           greenData.sprite.visible = greenVisible;
-          if (window.cardPointerLineRef) window.cardPointerLineRef.visible = greenVisible;
-          if (window.cardLineDotRef) window.cardLineDotRef.visible = greenVisible;
+          // Reveal line progressively from sphere to text
+          if (window.cardPointerLineRef && window.cardLineStart && window.cardBendPoint && window.cardLineEnd) {
+            window.cardPointerLineRef.visible = greenVisible;
+            if (window.cardPointerLineRef.material) {
+              window.cardPointerLineRef.material.opacity = 1; // Fully opaque when visible
+            }
+            revealLine(window.cardPointerLineRef, window.cardLineStart, window.cardBendPoint, window.cardLineEnd, greenProgress);
+          }
+          if (window.cardLineDotRef) {
+            window.cardLineDotRef.visible = greenVisible;
+            if (window.cardLineDotRef.material) {
+              window.cardLineDotRef.material.opacity = greenProgress;
+            }
+          }
         }
 
         // === NFC CHIP TEXT (frames 200-250) - "THIS NFC CHIP" ===
@@ -1742,8 +1862,20 @@ const BizBoxModel = () => {
           }
 
           nfcData.sprite.visible = nfcVisible;
-          if (window.nfcPointerLineRef) window.nfcPointerLineRef.visible = nfcVisible;
-          if (window.nfcLineDotRef) window.nfcLineDotRef.visible = nfcVisible;
+          // Reveal line progressively from chip to text
+          if (window.nfcPointerLineRef && window.nfcLineStart && window.nfcBendPoint && window.nfcLineEnd) {
+            window.nfcPointerLineRef.visible = nfcVisible;
+            if (window.nfcPointerLineRef.material) {
+              window.nfcPointerLineRef.material.opacity = 1; // Fully opaque when visible
+            }
+            revealLine(window.nfcPointerLineRef, window.nfcLineStart, window.nfcBendPoint, window.nfcLineEnd, nfcProgress);
+          }
+          if (window.nfcLineDotRef) {
+            window.nfcLineDotRef.visible = nfcVisible;
+            if (window.nfcLineDotRef.material) {
+              window.nfcLineDotRef.material.opacity = nfcProgress;
+            }
+          }
         } else if (currentFrame >= 200 && currentFrame < 250) {
           // Debug: log if nfcData or sprite is missing
           if (!nfcData) console.warn('nfcData is missing');
