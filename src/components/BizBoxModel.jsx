@@ -762,7 +762,7 @@ const BizBoxModel = () => {
           context.clearRect(0, 0, canvas.width, canvas.height);
 
           // Draw text
-          context.font = `bold ${fontSize}px Arial`;
+          context.font = `bold ${fontSize}px "Times New Roman", Times, serif`;
           context.fillStyle = 'white';
           context.textAlign = 'left';
           context.textBaseline = 'middle';
@@ -776,12 +776,12 @@ const BizBoxModel = () => {
           lines.forEach((line, index) => {
             if (index === 0) {
               // Title - larger font, positioned higher
-              context.font = `bold ${titleFontSize}px Arial`;
+              context.font = `bold ${titleFontSize}px "Times New Roman", Times, serif`;
               context.fillStyle = 'white';
               context.fillText(line, 10, 80);
             } else {
               // Description - smaller font, positioned below title with proper spacing
-              context.font = `${descFontSize}px Arial`;
+              context.font = `${descFontSize}px "Times New Roman", Times, serif`;
               context.fillStyle = 'rgba(255, 255, 255, 0.8)';
               const yPos = 80 + titleFontSize + lineSpacing + (index - 1) * (descFontSize + lineSpacing);
               context.fillText(line, 10, yPos);
@@ -979,6 +979,7 @@ const BizBoxModel = () => {
               if (child.isMesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
+                child.renderOrder = 0; // Render card first for proper depth occlusion
 
                 // Store references to bizcard and chip meshes
                 if (child.name === 'bizcard') {
@@ -1062,7 +1063,8 @@ const BizBoxModel = () => {
                     emissive: new THREE.Color(0xD4AF37),
                     emissiveIntensity: 0.2,
                     transparent: true,
-                    opacity: 1
+                    opacity: 1,
+                    depthWrite: true  // Ensure card writes to depth buffer for occlusion
                   });
                   child.material = cardMaterial;
                   cardMaterialRef.current = cardMaterial; // Store reference for color changing
@@ -1299,12 +1301,12 @@ const BizBoxModel = () => {
             if (nfcTextLabel.userData && nfcTextLabel.userData.context) {
               const ctx = nfcTextLabel.userData.context;
               ctx.clearRect(0, 0, 900, 400);
-              ctx.font = 'bold 24px Arial'; // Reduced to match card text size
+              ctx.font = 'bold 24px "Times New Roman", Times, serif'; // Reduced to match card text size
               ctx.fillStyle = 'white';
               ctx.textAlign = 'left';
               ctx.textBaseline = 'middle';
               ctx.fillText('THIS NFC', 10, 80);
-              ctx.font = 'bold 24px Arial';
+              ctx.font = 'bold 24px "Times New Roman", Times, serif';
               ctx.fillText('CHIP', 10, 80 + 24 + 15); // Proper spacing
               nfcTextLabel.userData.texture.needsUpdate = true;
               console.log('NFC text drawn on canvas');
@@ -1652,8 +1654,8 @@ const BizBoxModel = () => {
           window.nfcLineDotRef.position.copy(nfcLineStart);
         }
 
-        // Update text position (at line end, offset to the right)
-        window.nfcTextLabelRef.position.set(nfcLineEnd.x + 0.8, nfcLineEnd.y, nfcLineEnd.z);
+        // Update text position (at line end, offset to the right, moved down)
+        window.nfcTextLabelRef.position.set(nfcLineEnd.x + 0.8, nfcLineEnd.y - 0.3, nfcLineEnd.z);
       }
 
       // === TEXT ANIMATION SEQUENCE ===
