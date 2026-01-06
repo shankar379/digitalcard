@@ -125,24 +125,29 @@ const BizBoxModel = () => {
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // === LIGHTING SETUP ===
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    // === LIGHTING SETUP (Blue futuristic aesthetic - darker) ===
+    const ambientLight = new THREE.AmbientLight(0x1e40af, 0.15); // Darker blue ambient light (reduced intensity)
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    const keyLight = new THREE.DirectionalLight(0x3b82f6, 0.7); // Reduced brightness blue key light
     keyLight.position.set(5, 8, 5);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
     keyLight.shadow.mapSize.height = 2048;
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xa78bfa, 0.4);
+    const fillLight = new THREE.DirectionalLight(0x1e40af, 0.3); // Darker blue fill light (reduced)
     fillLight.position.set(-5, 3, 3);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0x8b5cf6, 0.3);
+    const rimLight = new THREE.DirectionalLight(0x1e3a8a, 0.25); // Darker blue rim light (reduced)
     rimLight.position.set(0, 5, -5);
     scene.add(rimLight);
+
+    // Add dimmer blue point light for luminous horizon effect
+    const horizonLight = new THREE.PointLight(0x3b82f6, 1.2, 50); // Reduced intensity
+    horizonLight.position.set(0, -5, -20); // Behind the scene for horizon glow
+    scene.add(horizonLight);
 
     const bottomLight = new THREE.DirectionalLight(0x3b82f6, 0.2);
     bottomLight.position.set(0, -3, 2);
@@ -310,214 +315,61 @@ const BizBoxModel = () => {
     // Store reference to animate rings
     const stageRingsRef = stageRings;
 
-    // === PROCEDURAL TERRAIN & MOUNTAINS ===
+    // === FUTURISTIC BLUE BACKGROUND WITH FOG ===
+    // Set scene background to darker blue/indigo (futuristic aesthetic)
+    scene.background = new THREE.Color(0x050510); // Very dark indigo/dark blue
+    
+    // Add darker blue fog for atmospheric effect
+    scene.fog = new THREE.FogExp2(0x0f1a2e, 0.1); // Darker blue fog with higher density
 
-    // Set scene background to match fog
-    scene.background = new THREE.Color(0xd8dce8);
-
-    // Improved Perlin-like noise function with FIXED seed (consistent terrain)
-    // Fixed permutation table - always produces same terrain
-    const permutation = [
-      151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,
-      8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,
-      35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,
-      134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,
-      55,46,245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,
-      18,169,200,196,135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,
-      250,124,123,5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,
-      189,28,42,223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,
-      172,9,129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,
-      228,251,34,242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,
-      107,49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,
-      138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180
-    ];
-    const perm = [...permutation, ...permutation];
-
-    const fade = (t) => t * t * t * (t * (t * 6 - 15) + 10);
-    const lerp2 = (a, b, t) => a + t * (b - a);
-    const grad = (hash, x, y) => {
-      const h = hash & 3;
-      const u = h < 2 ? x : y;
-      const v = h < 2 ? y : x;
-      return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
-    };
-
-    const perlin2D = (x, y) => {
-      const X = Math.floor(x) & 255;
-      const Y = Math.floor(y) & 255;
-      const xf = x - Math.floor(x);
-      const yf = y - Math.floor(y);
-      const u = fade(xf);
-      const v = fade(yf);
-      const aa = perm[perm[X] + Y];
-      const ab = perm[perm[X] + Y + 1];
-      const ba = perm[perm[X + 1] + Y];
-      const bb = perm[perm[X + 1] + Y + 1];
-      return lerp2(
-        lerp2(grad(aa, xf, yf), grad(ba, xf - 1, yf), u),
-        lerp2(grad(ab, xf, yf - 1), grad(bb, xf - 1, yf - 1), u),
-        v
-      );
-    };
-
-    // Fractal Brownian Motion for natural terrain
-    const fbm = (x, y, octaves = 6, lacunarity = 2, gain = 0.5) => {
-      let value = 0;
-      let amplitude = 1;
-      let frequency = 1;
-      let maxValue = 0;
-
-      for (let i = 0; i < octaves; i++) {
-        value += amplitude * perlin2D(x * frequency, y * frequency);
-        maxValue += amplitude;
-        amplitude *= gain;
-        frequency *= lacunarity;
-      }
-
-      return value / maxValue;
-    };
-
-    // Fog disabled for clearer view
-
-    // Create 3D terrain mesh
-    const terrainSize = 80;
-    const terrainSegments = 150;
-    const terrainGeometry = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSegments, terrainSegments);
-    const terrainPositions = terrainGeometry.attributes.position;
-
-    for (let i = 0; i < terrainPositions.count; i++) {
-      const x = terrainPositions.getX(i);
-      const y = terrainPositions.getY(i);
-      const distFromCenter = Math.sqrt(x * x + y * y);
-
-      // Base terrain with multiple noise layers
-      let height = 0;
-
-      // Large rolling hills
-      height += fbm(x * 0.02 + 5, y * 0.02 + 5, 4, 2, 0.5) * 3;
-
-      // Medium detail
-      height += fbm(x * 0.05, y * 0.05, 3, 2, 0.5) * 1;
-
-      // Small bumps
-      height += fbm(x * 0.15, y * 0.15, 2, 2, 0.5) * 0.3;
-
-      // Flatten center area (where rings are)
-      const flatRadius = 8;
-      const flattenFactor = Math.max(0, 1 - Math.pow(Math.max(0, flatRadius - distFromCenter) / flatRadius, 2));
-      height *= flattenFactor;
-
-      // Add mountains at the back (negative Y in plane space = negative Z in world)
-      if (y < -10) {
-        const mountainFactor = Math.pow(Math.abs(y + 10) / 30, 1.5);
-        const mountainNoise = fbm(x * 0.03 + 10, y * 0.02, 5, 2.2, 0.55);
-        const ridgeNoise = Math.abs(fbm(x * 0.05, y * 0.03 + 20, 4, 2, 0.5));
-        height += (mountainNoise * 8 + ridgeNoise * 12) * mountainFactor;
-      }
-
-      terrainPositions.setZ(i, height);
+    // Add sparkling particles for futuristic atmosphere
+    const particleCount = 500;
+    const particlesGeometry = new THREE.BufferGeometry();
+    const particlesPositions = new Float32Array(particleCount * 3);
+    const particlesColors = new Float32Array(particleCount * 3);
+    
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+      // Spread particles in a large area
+      particlesPositions[i3] = (Math.random() - 0.5) * 100;
+      particlesPositions[i3 + 1] = Math.random() * 50 + 5; // Above the scene
+      particlesPositions[i3 + 2] = (Math.random() - 0.5) * 100;
+      
+      // Blue-white colors for particles (darker for darker scene)
+      const brightness = 0.3 + Math.random() * 0.4; // Reduced brightness
+      particlesColors[i3] = 0.2 * brightness;     // R
+      particlesColors[i3 + 1] = 0.4 * brightness; // G
+      particlesColors[i3 + 2] = 0.7 * brightness; // B
     }
-
-    terrainGeometry.computeVertexNormals();
-
-    // Terrain material with vertex colors for snow effect
-    const terrainMaterial = new THREE.MeshStandardMaterial({
-      color: 0xcdd1dc,
-      metalness: 0.1,
-      roughness: 0.85,
-      flatShading: false,
-      envMapIntensity: 0.3
+    
+    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(particlesPositions, 3));
+    particlesGeometry.setAttribute('color', new THREE.BufferAttribute(particlesColors, 3));
+    
+    const particlesMaterial = new THREE.PointsMaterial({
+      size: 0.1,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.6, // Reduced opacity for darker scene
+      blending: THREE.AdditiveBlending
     });
+    
+    const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+    scene.add(particles);
+    window.particlesRef = particles;
 
-    const terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
-    terrain.rotation.x = -Math.PI / 2;
-    terrain.position.set(0, baseY - 0.35, -10);
-    terrain.receiveShadow = true;
-    terrain.castShadow = true;
-    scene.add(terrain);
-
-    // Add distant mountain backdrop (far layer) - 10x HEIGHT
-    const backdropGeometry = new THREE.PlaneGeometry(80, 35, 200, 1);
-    const backdropPositions = backdropGeometry.attributes.position;
-
-    for (let i = 0; i < backdropPositions.count; i++) {
-      const x = backdropPositions.getX(i);
-      const y = backdropPositions.getY(i);
-
-      if (y > 0) {
-        // Sharp peaks - DRAMATIC HEIGHT
-        const peak1 = Math.exp(-Math.pow((x + 15) * 0.10, 2)) * 320;
-        const peak2 = Math.exp(-Math.pow((x - 10) * 0.09, 2)) * 420;
-        const peak3 = Math.exp(-Math.pow((x + 25) * 0.12, 2)) * 280;
-        const peak4 = Math.exp(-Math.pow((x - 22) * 0.11, 2)) * 300;
-        const peak5 = Math.exp(-Math.pow((x + 3) * 0.10, 2)) * 380;
-        const peak6 = Math.exp(-Math.pow((x - 30) * 0.11, 2)) * 260;
-        const peak7 = Math.exp(-Math.pow((x + 35) * 0.12, 2)) * 240;
-        // Sharp noise for jagged edges
-        const sharpNoise = fbm(x * 0.3, 0, 5, 2.5, 0.6) * 100;
-        const ridgeNoise = Math.abs(fbm(x * 0.5, 0, 4, 2, 0.5)) * 70;
-
-        const mountainHeight = Math.max(peak1, peak2, peak3, peak4, peak5, peak6, peak7) + sharpNoise + ridgeNoise;
-        backdropPositions.setY(i, y + mountainHeight);
-      }
-    }
-
-    backdropGeometry.computeVertexNormals();
-
-    const backdropMaterial = new THREE.MeshStandardMaterial({
-      color: 0xc0c4d0,
-      metalness: 0,
-      roughness: 1,
-      side: THREE.DoubleSide
+    // Add darker reflective ground plane (replaces terrain)
+    const groundGeometry = new THREE.PlaneGeometry(200, 200);
+    const groundMaterial = new THREE.MeshStandardMaterial({
+      color: 0x050510, // Very dark blue-black
+      metalness: 0.8,
+      roughness: 0.2,
+      envMapIntensity: 0.3 // Reduced reflection intensity
     });
-
-    const backdrop = new THREE.Mesh(backdropGeometry, backdropMaterial);
-    backdrop.position.set(0, baseY + 1, -35);
-    scene.add(backdrop);
-
-    // Second backdrop layer - TALL SHARP MOUNTAINS - 10x HEIGHT
-    const backdrop2Geometry = new THREE.PlaneGeometry(100, 50, 250, 1);
-    const backdrop2Positions = backdrop2Geometry.attributes.position;
-
-    for (let i = 0; i < backdrop2Positions.count; i++) {
-      const x = backdrop2Positions.getX(i);
-      const y = backdrop2Positions.getY(i);
-
-      if (y > 0) {
-        // Very sharp tall peaks - EPIC DRAMATIC MOUNTAINS
-        const peak1 = Math.exp(-Math.pow((x + 15) * 0.12, 2)) * 650;
-        const peak2 = Math.exp(-Math.pow((x - 10) * 0.10, 2)) * 900;
-        const peak3 = Math.exp(-Math.pow(x * 0.11, 2)) * 800;
-        const peak4 = Math.exp(-Math.pow((x - 25) * 0.13, 2)) * 550;
-        const peak5 = Math.exp(-Math.pow((x + 30) * 0.12, 2)) * 700;
-        const peak6 = Math.exp(-Math.pow((x + 5) * 0.10, 2)) * 850;
-        const peak7 = Math.exp(-Math.pow((x - 35) * 0.13, 2)) * 500;
-        const peak8 = Math.exp(-Math.pow((x - 45) * 0.14, 2)) * 450;
-        const peak9 = Math.exp(-Math.pow((x + 42) * 0.13, 2)) * 480;
-        // Sharp jagged noise for dramatic edges
-        const sharpNoise = fbm(x * 0.4, 0, 6, 2.5, 0.55) * 150;
-        const ridgeNoise = Math.abs(fbm(x * 0.6 + 10, 0, 5, 2, 0.5)) * 120;
-        const microDetail = fbm(x * 0.8, 0, 3, 2, 0.5) * 60;
-
-        const mountainHeight = Math.max(peak1, peak2, peak3, peak4, peak5, peak6, peak7, peak8, peak9) + sharpNoise + ridgeNoise + microDetail;
-        backdrop2Positions.setY(i, y + mountainHeight);
-      }
-    }
-
-    backdrop2Geometry.computeVertexNormals();
-
-    const backdrop2Material = new THREE.MeshStandardMaterial({
-      color: 0xaeb2be,
-      metalness: 0,
-      roughness: 1,
-      side: THREE.DoubleSide
-    });
-
-    const backdrop2 = new THREE.Mesh(backdrop2Geometry, backdrop2Material);
-    backdrop2.position.set(0, baseY + 0, -25);
-    scene.add(backdrop2);
-
-    // Particle fog disabled for clearer view
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = baseY - 0.5;
+    ground.receiveShadow = true;
+    scene.add(ground);
 
     const loader = new GLTFLoader();
 
@@ -2038,6 +1890,21 @@ const BizBoxModel = () => {
         model.rotation.x = baseTiltX + rotWobbleX;
         model.rotation.y = (Math.PI + Math.PI / 2) + rotWobbleY;
         model.rotation.z = rotWobbleZ;
+      }
+
+      // Animate particles (sparkling effect)
+      if (window.particlesRef) {
+        const positions = window.particlesRef.geometry.attributes.position.array;
+        const time = timeRef.current;
+        
+        for (let i = 0; i < positions.length; i += 3) {
+          // Gentle floating animation
+          positions[i + 1] += Math.sin(time * 0.5 + i * 0.01) * 0.001;
+          // Subtle horizontal drift
+          positions[i] += Math.cos(time * 0.3 + i * 0.02) * 0.0005;
+        }
+        
+        window.particlesRef.geometry.attributes.position.needsUpdate = true;
       }
 
       renderer.render(scene, camera);
